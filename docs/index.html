@@ -58,7 +58,8 @@
   .readout.bad { border-left-color: #9a3412; }
   .note { color: var(--muted); font-size: 13px; margin-top: 6px; }
   .stats { display: grid; grid-template-columns: 1.3fr repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
-  .stat { background: var(--paper); border: 1px solid var(--line); padding: 10px 12px; }
+  .stat { background: #fff; border: 1px solid #c5d0dc; padding: 10px 12px; }
+  .stat:first-child { background: #f3f7fb; border-color: var(--accent); }
   .stat b { display: block; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
   .stat span { color: var(--muted); font-size: 12px; }
   .panel { padding: 14px 14px 10px; margin: 0 0 14px; }
@@ -196,6 +197,8 @@
       <span class="dl">
         <button class="ghost" type="button" id="dl-path">SVG</button>
         <button class="ghost" type="button" id="dl-path-png">PNG</button>
+        <button class="ghost" type="button" id="base-event">事件日=100</button>
+        <button class="ghost" type="button" id="base-pre">事件前=100</button>
         <button class="ghost" type="button" id="dl-caption">复制图注</button>
       </span>
     </div>
@@ -290,12 +293,13 @@
       <p>GPR 用 Caldara–Iacoviello 日度 GPRD，月内取均值。2026-10-13 从 matteoiacoviello.com 下载。黄金是 COMEX 期货 GC=F，布伦特是 ICE 期货 BZ=F，美元是洲际美元指数 DX-Y.NYB，恒生是 Yahoo ^HSI。沪深300是新浪 sh000300 价格指数，不是中证公司的官方归档。</p>
       <p class="note">收益是月末最后一笔收盘的对数差分再乘 100，没有减去无风险利率。期货月度收益含换月。各市场的月末交易日不必是同一天。</p>
       <p class="note">价格窗口按各市场自己的交易日计数。0 是事件日或其后第一个交易日，所以周末发生的冲击会落在 t = -1 和 t = 0 之间。相关窗口的事前不含事件月，事后从事件月起连续数 W 个月。样本末端会把事后窗口截断。</p>
-      <p class="note">避险强度在论文设定里是三项等权：黄金与沪深300、恒生的平均相关越负越高；与 GPR 月差分越同向越高；与美元指数越反向越高。50 表示相关为 0。60 和 45 只是着色线。自定变量后改为已选「对冲 / 同向」项的等权平均。</p>
+      <p class="note">避险强度，论文设定：先算三项。权益对冲 E = 50 × (1 − (ρ(黄金,沪深300) + ρ(黄金,恒生)) / 2)；GPR 联动 G = 50 × (1 + ρ(黄金, ΔGPR))；美元对冲 D = 50 × (1 − ρ(黄金, 美元指数))。强度 = (E + G + D) / 3。50 是这三项相关都为 0。自定变量后，强度改为每个「对冲」项 50×(1−ρ) 与每个「同向」项 50×(1+ρ) 的等权平均。百分位是当前分数在 36 个月滚动强度历史分布中的位置。</p>
+      <p class="note">价格按各市场自己的交易日对齐，不对齐到同一个日历日，也不跨市场填充缺失。月末收益用该月最后一个可得收盘。日度路径里，事件日是事件日期当天或其后第一个交易日。归一化可以选择该日收盘 = 100，或事件前最后一个收盘 = 100。</p>
       <p class="note">论文设定的脉冲响应是六变量月度 VAR，滞后由 AIC 在 1 至 3 阶里选出，本样本为 1 阶。Cholesky 顺序：GPR 变动、布伦特、美元、黄金、沪深300、恒生。图中是 1 个标准差正向 GPR 冲击的累计响应，阴影是 200 次残差自助的 90% 区间。自定顺序只重估 1 阶点估计，没有区间。这是递归排序，不是结构因果。</p>
       <p class="note">短窗口相关不稳定。6 个月只适合对照。苏莱曼尼之后的 6 个月穿过 2020 年 3 月疫情，油价跌幅不能写成那次袭击的效应。全样本 GPR 冲击的价格响应区间都盖住零，单次事件不能用平均脉冲来代替。</p>
     </div>
   </details>
-  <p class="site-footer">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.2 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。</p>
+  <p class="site-footer">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.3 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。</p>
   <footer id="foot"></footer>
 </main>
 <div id="tip"></div>
@@ -321,7 +325,7 @@ const PRICE_IDS = ["gold","brent","dxy","csi","hsi"];
 const SCORE_IDS = ["brent","dxy","csi","hsi","dgpr"];
 const VAR_IDS = ["dgpr","brent","dxy","gold","csi","hsi"];
 const STORE_KEY = "gpr-haven-custom-v1";
-const state = {eventId:"hormuz_2026", sessions:40, width:6, spec:null, sort:"time", overlay:[]};
+const state = {eventId:"hormuz_2026", sessions:40, width:6, spec:null, sort:"time", overlay:[], base:"event"};
 
 function defaultSpec() {
   return {
@@ -499,12 +503,13 @@ function analyze(month, width) {
     gprAfter: mean(after.gpr),
   };
 }
-function indexedPath(pack, eventDate, sessions) {
+function indexedPath(pack, eventDate, sessions, baseMode) {
   const {dates, close} = pack;
   let i0 = 0;
   while (i0 < dates.length && dates[i0] < eventDate) i0++;
   if (i0 <= 0) return null;
-  const base = close[i0 - 1];
+  const mode = baseMode || state.base || "event";
+  const base = mode === "pre" || close[i0] == null ? close[i0 - 1] : close[i0];
   if (!base) return null;
   const tau = [], value = [], date = [];
   for (let i = Math.max(0, i0 - sessions); i < i0; i++) {
@@ -832,7 +837,7 @@ function figureCaption() {
   const stats = analyze(event.month, state.width);
   const anchor = state.spec.anchor;
   const bits = state.spec.path.map(id => NAMES[id] + " " + fmt(stats && stats.cum[id]) + "%").join("，");
-  return "图 " + event.name + "（" + event.date + "）前后 " + state.sessions + " 个交易日的价格路径，指数以 t = -1 收盘价为 100。锚资产为" + NAMES[anchor] + "。事后 " + (stats ? stats.nAfter : "—") + " 个月累计对数收益：" + bits + "。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。GPR 为 Caldara–Iacoviello 日度 GPRD 的月均值；黄金、布伦特、美元指数和恒生来自 Yahoo Finance，沪深300来自新浪财经。描述性窗口，不是因果识别。EF Lab V0.2，仅供学习与研究，不构成投资建议。";
+  return "图 " + event.name + "（" + event.date + "）前后 " + state.sessions + " 个交易日的价格路径，指数以" + (state.base === "pre" ? "事件前最后收盘" : "事件日收盘") + "为 100。锚资产为" + NAMES[anchor] + "。事后 " + (stats ? stats.nAfter : "—") + " 个月累计对数收益：" + bits + "。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。GPR 为 Caldara–Iacoviello 日度 GPRD 的月均值；黄金、布伦特、美元指数和恒生来自 Yahoo Finance，沪深300来自新浪财经。描述性窗口，不是因果识别。EF Lab V0.3，仅供学习与研究，不构成投资建议。";
 }
 function drawBoard(width) {
   const table = document.getElementById("board");
@@ -913,8 +918,10 @@ function render() {
   document.querySelectorAll("[data-sort]").forEach(button => {
     button.setAttribute("aria-pressed", String(button.dataset.sort === state.sort));
   });
+  document.getElementById("base-event").setAttribute("aria-pressed", String(state.base !== "pre"));
+  document.getElementById("base-pre").setAttribute("aria-pressed", String(state.base === "pre"));
   document.getElementById("path-legend").innerHTML = pathIds.map(name => "<span><i class='swatch' style='background:" + COLORS[name] + "'></i>" + NAMES[name] + (name === anchor ? "（锚）" : "") + "</span>").join("");
-  document.getElementById("path-cap").textContent = "暖色是黄金和布伦特，冷色是美元、沪深300和恒生。更粗的线是锚资产。竖线标的是事件日。t = -1 的收盘价设为 100。相对表现以各序列自己的事件前收盘为 100。";
+  document.getElementById("path-cap").textContent = "暖色是黄金和布伦特，冷色是美元、沪深300和恒生。更粗的线是锚资产。竖线是事件日。当前指数以" + (state.base === "pre" ? "事件前最后收盘" : "事件日收盘") + "为 100。";
   paintOverlayPicks();
   drawOverlay();
 
@@ -1237,7 +1244,10 @@ function csvCell(value) {
 function downloadEventCsv() {
   const anchor = state.spec.anchor;
   const other = ["csi", "brent", "hsi", "dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || "";
-  const lines = [["event", "date", "window_months", "n_after", "partial", "anchor", "anchor_cum", "other", "other_cum", "excess", "haven"]];
+  const lines = [
+    ["note", "EF Lab V0.3。超额=锚资产累计对数收益减对照资产，单位是百分点。避险强度 50 为零相关。事后窗口从事件月起算。描述性结果，不是因果识别。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。"],
+    ["event", "date", "window_months", "n_after", "partial", "anchor", "anchor_cum", "other", "other_cum", "excess", "haven"],
+  ];
   allEvents().forEach(event => {
     const stats = analyze(event.month, state.width);
     const anchorCum = stats && stats.cum[anchor];
@@ -1291,7 +1301,7 @@ function downloadGrid(hostId, filename, cols, cellW, cellH) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
 function verifyCheck() {
-  const path = indexedPath(LAB.daily.gold, LAB.meta.check.date, 60);
+  const path = indexedPath(LAB.daily.gold, LAB.meta.check.date, 60, "pre");
   const at = path.tau.indexOf(LAB.meta.check.tau);
   const got = path.value[at];
   const ok = Math.abs(got - LAB.meta.check.gold) < 0.05;
@@ -1349,6 +1359,7 @@ function boot() {
     state.sessions = 40;
     state.overlay = [];
     state.sort = "time";
+    state.base = "event";
     saveSpec();
     refreshVariableControls();
     render();
@@ -1385,6 +1396,8 @@ function boot() {
   document.getElementById("dl-compare").addEventListener("click", () => download("compare", "event_compare.svg"));
   document.getElementById("dl-compare-png").addEventListener("click", () => downloadPng("compare", "event_compare.png"));
   document.getElementById("dl-csv").addEventListener("click", downloadEventCsv);
+  document.getElementById("base-event").addEventListener("click", () => { state.base = "event"; render(); });
+  document.getElementById("base-pre").addEventListener("click", () => { state.base = "pre"; render(); });
   document.getElementById("dl-caption").addEventListener("click", () => {
     const text = figureCaption();
     const out = document.getElementById("caption-out");

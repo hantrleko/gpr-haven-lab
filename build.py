@@ -33,14 +33,16 @@ def main() -> None:
     print("Exporting figures...")
     export_all(lab, ROOT / "figs")
     payload = web_payload(lab)
-    template = (ROOT / "src" / "havenlab" / "template.html").read_text(encoding="utf-8")
     blob = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
-    html = template.replace("__LAB_JSON__", blob)
+    template = (ROOT / "src" / "havenlab" / "template.html").read_text(encoding="utf-8")
     app = ROOT / "app" / "index.html"
     docs = ROOT / "docs"
     docs.mkdir(parents=True, exist_ok=True)
-    app.write_text(html, encoding="utf-8")
-    (docs / "index.html").write_text(html, encoding="utf-8")
+    app.parent.mkdir(parents=True, exist_ok=True)
+    app.write_text(template, encoding="utf-8")
+    (docs / "index.html").write_text(template, encoding="utf-8")
+    (app.parent / "lab_data.json").write_text(blob, encoding="utf-8")
+    (docs / "lab_data.json").write_text(blob, encoding="utf-8")
     (docs / ".nojekyll").write_text("", encoding="utf-8")
     processed = ROOT / "data" / "processed"
     processed.mkdir(parents=True, exist_ok=True)

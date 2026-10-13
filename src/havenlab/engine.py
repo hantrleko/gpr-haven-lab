@@ -103,14 +103,28 @@ def _series_csi() -> pd.Series:
     return out
 
 
+def _gpr_daily_frame() -> pd.DataFrame:
+    frame = pd.read_excel(
+        RAW / "data_gpr_daily_recent.xls",
+        usecols=["date", "GPRD", "GPRD_ACT", "GPRD_THREAT"],
+    )
+    frame["date"] = pd.to_datetime(frame["date"]).dt.normalize()
+    for column in ("GPRD", "GPRD_ACT", "GPRD_THREAT"):
+        frame[column] = pd.to_numeric(frame[column], errors="coerce")
+    frame = frame.dropna(subset=["date"]).drop_duplicates("date", keep="last").set_index("date").sort_index()
+    return frame
+
+
 def _gpr_daily() -> pd.Series:
-    frame = pd.read_excel(RAW / "data_gpr_daily_recent.xls", usecols=["date", "GPRD"])
-    dates = pd.to_datetime(frame["date"]).dt.normalize()
-    values = pd.to_numeric(frame["GPRD"], errors="coerce")
-    out = pd.Series(values.to_numpy(), index=pd.DatetimeIndex(dates), name="gpr")
-    out = out[np.isfinite(out.to_numpy())]
-    out = out[~out.index.duplicated(keep="last")].sort_index()
+    out = _gpr_daily_frame()["GPRD"].dropna()
+    out.name = "gpr"
     return out
+
+
+def _monthly_mean_diff(series: pd.Series) -> pd.Series:
+    level = series.dropna().resample("ME").mean()
+    level.index = level.index.to_period("M")
+    return level.diff()
 
 
 def _month_level_return(series: pd.Series) -> pd.DataFrame:
@@ -124,7 +138,9 @@ def _month_level_return(series: pd.Series) -> pd.DataFrame:
 def build_panel(today: pd.Timestamp | None = None) -> tuple[pd.DataFrame, dict[str, pd.Series]]:
     daily = {name: _series_from_yahoo(path) for name, path in PRICE_FILES.items()}
     daily["csi"] = _series_csi()
-    gpr = _gpr_daily()
+    gpr_daily = _gpr_daily_frame()
+    gpr = gpr_daily["GPRD"].dropna()
+    gpr.name = "gpr"
     daily["gpr"] = gpr
 
     pieces = []
@@ -133,7 +149,12 @@ def build_panel(today: pd.Timestamp | None = None) -> tuple[pd.DataFrame, dict[s
         pieces.append(part)
     gpr_level = gpr.resample("ME").mean()
     gpr_level.index = gpr_level.index.to_period("M")
-    gpr_frame = pd.DataFrame({"gpr": gpr_level, "dgpr": gpr_level.diff()})
+    gpr_frame = pd.DataFrame({
+        "gpr": gpr_level,
+        "dgpr": gpr_level.diff(),
+        "dgpr_act": _monthly_mean_diff(gpr_daily["GPRD_ACT"]),
+        "dgpr_threat": _monthly_mean_diff(gpr_daily["GPRD_THREAT"]),
+    })
     panel = pd.concat(pieces + [gpr_frame], axis=1).sort_index()
 
     needed = ASSETS + ["gpr", "dgpr"] + [f"ret_{name}" for name in ASSETS]
@@ -548,6 +569,8 @@ def web_payload(lab: dict) -> dict:
         "months": [str(period) for period in panel.index],
         "ret": {name: _list_or_none(panel[f"ret_{name}"], 6) for name in ASSETS},
         "dgpr": _list_or_none(panel["dgpr"], 4),
+        "dgpr_act": _list_or_none(panel["dgpr_act"], 4),
+        "dgpr_threat": _list_or_none(panel["dgpr_threat"], 4),
         "gpr": _list_or_none(panel["gpr"], 2),
         "level": {name: _list_or_none(panel[name], 4) for name in ASSETS},
         "haven": {

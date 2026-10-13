@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>地缘政治风险 × 避险资产</title>
+<title>EF Lab | 地缘政治风险 × 避险资产</title>
 <style>
   :root {
     --bg: #f3f0e8;
@@ -77,18 +77,49 @@
   .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .irf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   footer { color: var(--muted); font-size: 12px; margin-top: 8px; }
-  #tip {
+  .brand { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+  .brand img { width: 88px; height: auto; background: #fff; }
+  .kicker { margin: 0 0 2px; font-size: 12px; letter-spacing: 0.12em; color: var(--accent); font-weight: 700; }
+  .subtitle { color: var(--muted); font-size: 14px; max-width: 40rem; }
+  .controls { position: relative; }
+  .hint { border-bottom: 1px dotted var(--muted); cursor: help; }
+  .scenes { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+  .reset-btn { border-color: var(--accent); color: var(--accent); margin-left: 0; }
+  .busy { margin: -6px 0 12px; color: var(--accent); font-size: 13px; }
+  .busy[hidden] { display: none; }
+  .meter { height: 8px; background: #eceae4; margin-top: 8px; }
+  .meter i { display: block; height: 100%; width: 0; }
+  details.fold { background: var(--paper); border: 1px solid var(--line); margin: 0 0 14px; }
+  details.fold summary { cursor: pointer; padding: 12px 14px; font-weight: 650; }
+  details.fold .fold-body { padding: 0 14px 14px; }
+  .site-footer { margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .site-footer a { color: var(--accent); }
+  .dl { display: flex; gap: 6px; }
+  .dl .ghost { margin-left: 0; }
     position: fixed; z-index: 5; pointer-events: none; display: none;
     background: var(--ink); color: #fff; font-size: 12px; padding: 4px 7px;
   }
   @media (max-width: 800px) {
-    .stats, .split, .irf-grid, .custom-grid { grid-template-columns: 1fr; }
+    main { padding: 14px 12px 40px; }
+    h1 { font-size: 20px; }
+    .brand { align-items: flex-start; }
+    .brand img { width: 58px; }
+    .stats, .split, .irf-grid, .custom-grid { grid-template-columns: 1fr 1fr; }
+    .split, .irf-grid, .custom-grid { grid-template-columns: 1fr; }
+    .controls { position: sticky; top: 0; z-index: 4; }
   }
 </style>
 </head>
 <body>
 <main>
-  <h1>地缘政治风险 × 避险资产</h1>
+  <header class="brand">
+    <img src="ef-logo.jpg" alt="Eugene Finance" width="88" height="88" />
+    <div>
+      <p class="kicker">EF LAB</p>
+      <h1>EF Lab · 地缘政治风险 × 避险资产实验室</h1>
+      <p class="subtitle">Interactive Geopolitical Risk and Safe-Haven Lab · 仅供学习与研究，不构成投资建议</p>
+    </div>
+  </header>
   <p class="lede" id="lede"></p>
   <div class="controls">
     <div>
@@ -96,25 +127,30 @@
       <select id="event"></select>
     </div>
     <div>
-      <label>价格窗口</label>
+      <label class="hint" title="各市场用自己的交易日。0 是事件日或其后第一个交易日，t = -1 的收盘价设为 100。">价格窗口</label>
       <div class="seg" id="seg-sessions"></div>
     </div>
     <div>
-      <label>月度相关窗口</label>
+      <label class="hint" title="事前是事件月之前的 W 个月，事后从事件月起再数 W 个月。相关用月度对数收益。短于 12 个月不稳定。">月度相关窗口</label>
       <div class="seg" id="seg-width"></div>
     </div>
-  </div>
-  <section class="panel" id="custom-panel">
-    <div class="panel-head">
-      <h2>自定</h2>
-      <button class="ghost" id="reset-spec" type="button">恢复论文设定</button>
+    <div>
+      <label>论文场景</label>
+      <button class="ghost reset-btn" id="reset-spec" type="button">恢复论文设定</button>
     </div>
+    <div class="scenes" id="scenes"></div>
+  </div>
+  <p id="busy" class="busy" hidden>正在按当前事件和窗口重算…</p>
+  <details class="fold" id="custom-panel">
+    <summary>自定事件与变量</summary>
+    <div class="fold-body">
     <div class="custom-grid">
       <div>
         <h3>自定事件</h3>
-        <div class="field"><label for="ev-name">名称</label><input id="ev-name" type="text" maxlength="40" placeholder="例如：红海航运受阻" /></div>
+        <p class="note">日期用 YYYY-MM-DD，并且要落在样本内。例：2022-02-24，名称写「俄乌冲突全面升级」。</p>
+        <div class="field"><label for="ev-name">名称</label><input id="ev-name" type="text" maxlength="40" placeholder="俄乌冲突全面升级" /></div>
         <div class="field"><label for="ev-date">日期</label><input id="ev-date" type="date" /></div>
-        <div class="field"><label for="ev-note">备注</label><input id="ev-note" type="text" maxlength="160" placeholder="可选，写清这个日期锚的是什么" /></div>
+        <div class="field"><label for="ev-note">备注</label><input id="ev-note" type="text" maxlength="160" placeholder="可选。写清这个日期锚的是哪一天的新闻" /></div>
         <button class="ghost" id="ev-add" type="button" style="margin-left:0">加入并查看</button>
         <p class="note" id="ev-msg"></p>
         <div id="ev-list"></div>
@@ -122,25 +158,44 @@
       <div>
         <h3>自定变量</h3>
         <div class="field">
-          <label for="anchor">锚资产</label>
+          <label for="anchor" class="hint" title="路径以锚资产事件前收盘为 100。相关和避险强度都相对这个序列。">锚资产</label>
           <select id="anchor"></select>
         </div>
-        <p class="note">价格路径里画哪些序列。锚资产始终保留。</p>
+        <p class="note">价格路径里画哪些序列。锚资产始终保留，并用更粗的线。</p>
         <div id="path-picks"></div>
         <p class="note" style="margin-top:10px">和锚资产做相关。对冲：负相关加分。同向：正相关加分。对照：只画相关，不进强度。</p>
         <div id="score-picks"></div>
-        <p class="note" style="margin-top:10px">脉冲响应的变量和顺序。第一位是被冲击的变量。自定顺序只给点估计。</p>
+        <p class="note" style="margin-top:10px">脉冲响应的变量和顺序。第一位是被冲击的变量。自定顺序只给点估计，论文设定才有 90% 区间。</p>
         <div id="var-order"></div>
       </div>
     </div>
-  </section>
+    </div>
+  </details>
   <div class="readout" id="readout"></div>
   <div class="stats" id="stats"></div>
+  <div class="meter" aria-hidden="true"><i id="meter-fill"></i></div>
+  <p class="cap" id="meter-label"></p>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>事件对比</h2>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-compare">SVG</button>
+        <button class="ghost" type="button" id="dl-compare-png">PNG</button>
+        <button class="ghost" type="button" id="dl-csv">CSV</button>
+      </span>
+    </div>
+    <div id="compare"></div>
+    <p class="cap" id="compare-cap">每根柱是当前窗口里锚资产累计对数收益减去对照资产。选中的事件用更深的颜色。</p>
+  </section>
 
   <section class="panel">
     <div class="panel-head">
       <h2>事件前后价格路径</h2>
-      <button class="ghost" type="button" id="dl-path">下载 SVG</button>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-path">SVG</button>
+        <button class="ghost" type="button" id="dl-path-png">PNG</button>
+      </span>
     </div>
     <div id="path"></div>
     <div class="legend" id="path-legend"></div>
@@ -150,7 +205,10 @@
   <section class="panel">
     <div class="panel-head">
       <h2>同一窗口里的 GPR 日度水平</h2>
-      <button class="ghost" type="button" id="dl-gpr">下载 SVG</button>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-gpr">SVG</button>
+        <button class="ghost" type="button" id="dl-gpr-png">PNG</button>
+      </span>
     </div>
     <div id="gpr"></div>
     <p class="cap">GPRD 按黄金交易日取值。0 是事件日或其后第一个交易日。纵轴是指数点，不是涨跌幅。</p>
@@ -160,7 +218,10 @@
     <section class="panel">
       <div class="panel-head">
         <h2>事件前后相关系数</h2>
-        <button class="ghost" type="button" id="dl-corr">下载 SVG</button>
+        <span class="dl">
+          <button class="ghost" type="button" id="dl-corr">SVG</button>
+          <button class="ghost" type="button" id="dl-corr-png">PNG</button>
+        </span>
       </div>
       <div id="corr"></div>
       <p class="cap" id="corr-cap"></p>
@@ -175,7 +236,10 @@
   <section class="panel">
     <div class="panel-head">
       <h2>36 个月滚动避险强度</h2>
-      <button class="ghost" type="button" id="dl-haven">下载 SVG</button>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-haven">SVG</button>
+        <button class="ghost" type="button" id="dl-haven-png">PNG</button>
+      </span>
     </div>
     <div id="haven"></div>
     <div class="legend">
@@ -190,7 +254,10 @@
   <section class="panel">
     <div class="panel-head">
       <h2 id="heat-title">黄金滚动相关，按季度</h2>
-      <button class="ghost" type="button" id="dl-heat">下载 SVG</button>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-heat">SVG</button>
+        <button class="ghost" type="button" id="dl-heat-png">PNG</button>
+      </span>
     </div>
     <div id="heat" style="overflow-x:auto"></div>
     <p class="cap">每一格是止于该季末的 36 个月相关系数。蓝色偏负，橙色偏正。当前事件所在季度用黑框标出。</p>
@@ -210,12 +277,38 @@
     <div style="overflow-x:auto"><table id="board"></table></div>
     <p class="cap">点击一行就切换事件。黄金−沪深300 为正，表示这段窗口里黄金的累计对数收益更高。</p>
   </section>
+  <details class="fold">
+    <summary>方法说明</summary>
+    <div class="fold-body">
+      <p>GPR 用 Caldara–Iacoviello 日度 GPRD，月内取均值。2026-10-13 从 matteoiacoviello.com 下载。黄金是 COMEX 期货 GC=F，布伦特是 ICE 期货 BZ=F，美元是洲际美元指数 DX-Y.NYB，恒生是 Yahoo ^HSI。沪深300是新浪 sh000300 价格指数，不是中证公司的官方归档。</p>
+      <p class="note">收益是月末最后一笔收盘的对数差分再乘 100，没有减去无风险利率。期货月度收益含换月。各市场的月末交易日不必是同一天。</p>
+      <p class="note">价格窗口按各市场自己的交易日计数。0 是事件日或其后第一个交易日，所以周末发生的冲击会落在 t = -1 和 t = 0 之间。相关窗口的事前不含事件月，事后从事件月起连续数 W 个月。样本末端会把事后窗口截断。</p>
+      <p class="note">避险强度在论文设定里是三项等权：黄金与沪深300、恒生的平均相关越负越高；与 GPR 月差分越同向越高；与美元指数越反向越高。50 表示相关为 0。60 和 45 只是着色线。自定变量后改为已选「对冲 / 同向」项的等权平均。</p>
+      <p class="note">论文设定的脉冲响应是六变量月度 VAR，滞后由 AIC 在 1 至 3 阶里选出，本样本为 1 阶。Cholesky 顺序：GPR 变动、布伦特、美元、黄金、沪深300、恒生。图中是 1 个标准差正向 GPR 冲击的累计响应，阴影是 200 次残差自助的 90% 区间。自定顺序只重估 1 阶点估计，没有区间。这是递归排序，不是结构因果。</p>
+      <p class="note">短窗口相关不稳定。6 个月只适合对照。苏莱曼尼之后的 6 个月穿过 2020 年 3 月疫情，油价跌幅不能写成那次袭击的效应。全样本 GPR 冲击的价格响应区间都盖住零，单次事件不能用平均脉冲来代替。</p>
+    </div>
+  </details>
+  <p class="site-footer">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。</p>
   <footer id="foot"></footer>
 </main>
 <div id="tip"></div>
 <script>
 const LAB = __LAB_JSON__;
-const COLORS = {gold:"#c48a00", brent:"#d55e00", dxy:"#0072b2", csi:"#007a5a", hsi:"#a85b86", dgpr:"#1c1915"};
+const COLORS = {gold:"#C47B12", brent:"#D55E00", dxy:"#0072B2", csi:"#1F4E79", hsi:"#5B7C99", dgpr:"#1C1915"};
+const TAGS = {
+  libya_2011: "油价上行",
+  ukraine_2022: "相关转负",
+  gaza_2023: "黄金上涨",
+  us_iran_2025: "冲突升级",
+  hormuz_2026: "黄金下跌",
+};
+const SCENES = [
+  {id:"hormuz_2026", label:"霍尔木兹 · 黄金下跌"},
+  {id:"ukraine_2022", label:"俄乌 · 相关转负"},
+  {id:"gaza_2023", label:"哈马斯 · 黄金上涨"},
+  {id:"libya_2011", label:"利比亚 · 油价上行"},
+  {id:"us_iran_2025", label:"核设施 · 冲突升级"},
+];
 const NAMES = {gold:"黄金", brent:"布伦特", dxy:"美元指数", csi:"沪深300", hsi:"恒生", dgpr:"GPR变动"};
 const PRICE_IDS = ["gold","brent","dxy","csi","hsi"];
 const SCORE_IDS = ["brent","dxy","csi","hsi","dgpr"];
@@ -488,6 +581,11 @@ function drawChart(host, spec) {
   if (spec.ref != null) svg.appendChild(svgNode("line", {x1:m.l, x2:width-m.r, y1:Y(spec.ref), y2:Y(spec.ref), stroke:"#c8c2b6", "stroke-dasharray":"3 3"}));
   if (spec.mark != null && spec.mark >= x0 && spec.mark <= x1) {
     svg.appendChild(svgNode("line", {x1:X(spec.mark), x2:X(spec.mark), y1:m.t, y2:height-m.b, stroke:"#8a8478", "stroke-dasharray":"3 3"}));
+    if (spec.markLabel) {
+      const markText = svgNode("text", {x:X(spec.mark) + 6, y:m.t + 14, fill:"#5e584f", "font-size":11});
+      markText.textContent = spec.markLabel;
+      svg.appendChild(markText);
+    }
   }
   spec.series.forEach(series => {
     let d = "";
@@ -610,6 +708,49 @@ function rollingHaven() {
     return stats ? Math.round(stats.score * 100) / 100 : null;
   });
 }
+function drawCompare() {
+  const host = document.getElementById("compare");
+  if (!host) return;
+  const anchor = state.spec.anchor;
+  const other = ["csi", "brent", "hsi", "dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || state.spec.path.find(id => id !== anchor);
+  const events = allEvents();
+  const values = events.map(event => {
+    const stats = analyze(event.month, state.width);
+    if (!stats || stats.cum[anchor] == null || !other || stats.cum[other] == null) return null;
+    return stats.cum[anchor] - stats.cum[other];
+  });
+  host.innerHTML = "";
+  const width = 860;
+  const rowH = 26;
+  const height = 28 + events.length * rowH;
+  const svg = svgNode("svg", {viewBox: "0 0 " + width + " " + height});
+  const m = {l: 188, r: 56, t: 8, b: 16};
+  const finite = values.filter(value => value != null);
+  const max = Math.max(8, ...finite.map(value => Math.abs(value)));
+  const zero = m.l + (width - m.l - m.r) / 2;
+  const scale = (width - m.l - m.r) / 2 / max;
+  svg.appendChild(svgNode("line", {x1: zero, x2: zero, y1: m.t, y2: height - m.b, stroke: "#1c1915"}));
+  events.forEach((event, index) => {
+    const y = m.t + index * rowH + 12;
+    const label = svgNode("text", {x: m.l - 8, y: y + 4, "text-anchor": "end", fill: event.id === state.eventId ? "#1f4b73" : "#1c1915", "font-size": 12});
+    label.textContent = (TAGS[event.id] ? TAGS[event.id] + " · " : "") + event.name;
+    svg.appendChild(label);
+    const value = values[index];
+    if (value == null) return;
+    const x = zero + value * scale;
+    svg.appendChild(svgNode("line", {
+      x1: zero, x2: x, y1: y, y2: y,
+      stroke: event.id === state.eventId ? "#1F4E79" : (value >= 0 ? "#C47B12" : "#5B7C99"),
+      "stroke-width": event.id === state.eventId ? 8 : 5,
+    }));
+    const num = svgNode("text", {x: x + (value >= 0 ? 6 : -6), y: y + 4, "text-anchor": value >= 0 ? "start" : "end", fill: "#5e584f", "font-size": 11});
+    num.textContent = (value > 0 ? "+" : "") + value.toFixed(1);
+    svg.appendChild(num);
+  });
+  host.appendChild(svg);
+  const cap = document.getElementById("compare-cap");
+  if (cap && other) cap.textContent = "柱长是事后 " + state.width + " 个月，" + NAMES[anchor] + "累计对数收益减去" + NAMES[other] + "。暖色为正，冷色为负，深色是当前事件。";
+}
 function drawBoard(width) {
   const table = document.getElementById("board");
   const anchor = state.spec.anchor;
@@ -660,21 +801,31 @@ function render() {
   extras.forEach(id => statItems.push([NAMES[id] + "累计", fmt(stats && stats.cum[id]) + "%", ""]));
   statItems.push(["事后 GPR 月均", stats && stats.gprAfter != null ? Math.round(stats.gprAfter) + "，事前 " + Math.round(stats.gprBefore) : "—", ""]);
   document.getElementById("stats").innerHTML = statItems.map(([label, value, style]) => "<div class='stat'><b style='" + style + "'>" + value + "</b><span>" + label + "</span></div>").join("");
+  const meter = document.getElementById("meter-fill");
+  const meterLabel = document.getElementById("meter-label");
+  if (score == null) {
+    meter.style.width = "0";
+    meterLabel.textContent = "这个窗口没有算出避险强度。";
+  } else {
+    meter.style.width = Math.max(0, Math.min(100, score)) + "%";
+    meter.style.background = score >= 60 ? "#0072B2" : score < 45 ? "#D55E00" : "#C47B12";
+    meterLabel.textContent = "避险强度 " + score.toFixed(0) + " / 100。50 是零相关。蓝色 ≥ 60，橙色 < 45。";
+  }
 
   const pathIds = state.spec.path.includes(anchor) ? state.spec.path : [anchor].concat(state.spec.path);
   const anchorPath = indexedPath(LAB.daily[anchor], event.date, state.sessions);
   drawChart(document.getElementById("path"), {
     title: event.name + " 前后价格路径",
-    height: 320, ref: 100, mark: 0,
+    height: 320, ref: 100, mark: 0, markLabel: "事件日",
     yFormat: v => v.toFixed(0),
     xTicks: [-state.sessions, -20, 0, 20, state.sessions - 1],
     series: pathIds.map(name => {
       const path = indexedPath(LAB.daily[name], event.date, state.sessions);
-      return path ? {name: NAMES[name], color: COLORS[name], x: path.tau, y: path.value} : {name: NAMES[name], color: COLORS[name], x:[], y:[]};
+      return path ? {name: NAMES[name] + (name === anchor ? "（锚）" : ""), color: COLORS[name], width: name === anchor ? 2.6 : 1.25, x: path.tau, y: path.value} : {name: NAMES[name], color: COLORS[name], x:[], y:[]};
     }),
   });
   document.getElementById("path-legend").innerHTML = pathIds.map(name => "<span><i class='swatch' style='background:" + COLORS[name] + "'></i>" + NAMES[name] + "</span>").join("");
-  document.getElementById("path-cap").textContent = "t = -1 的收盘价设为 100。0 是事件日或其后第一个交易日。当前锚资产是" + NAMES[anchor] + "。各市场用自己的交易日计数。";
+  document.getElementById("path-cap").textContent = "暖色是黄金和布伦特，冷色是美元、沪深300和恒生。更粗的线是锚资产。竖线标的是事件日。t = -1 的收盘价设为 100。";
 
   const gprClock = anchorPath || indexedPath(LAB.daily.gold, event.date, state.sessions);
   const gprMap = new Map(LAB.daily.gpr.dates.map((date, i) => [date, LAB.daily.gpr.close[i]]));
@@ -687,7 +838,7 @@ function render() {
 
   drawCorrBars(stats);
   document.getElementById("corr-cap").textContent = stats
-    ? "事前 " + stats.nBefore + " 个月，不含事件月；事后 " + stats.nAfter + " 个月，含事件月。" + (stats.partial ? " 窗口被样本端点截断。" : "")
+    ? "蓝条是事前，橙条是事后。右侧数字是事后减事前。事前 " + stats.nBefore + " 个月，不含事件月；事后 " + stats.nAfter + " 个月，含事件月。" + (stats.partial ? " 窗口被样本端点截断。" : "")
     : "";
 
   const after = stats && stats.after;
@@ -730,6 +881,7 @@ function render() {
   document.getElementById("heat-title").textContent = NAMES[state.spec.anchor] + "滚动相关，按季度";
   drawHeat(event, liveHeat());
   drawIrf();
+  drawCompare();
   drawBoard(state.width);
   document.body.dataset.event = event.id;
   document.body.dataset.goldCum = stats && stats.cum[state.spec.anchor] != null ? stats.cum[state.spec.anchor].toFixed(4) : "";
@@ -789,6 +941,14 @@ function drawCorrBars(stats) {
       const y = Y(i) + dy;
       svg.appendChild(svgNode("line", {x1:zero, x2:x, y1:y, y2:y, stroke:color, "stroke-width":6}));
     });
+    const before = stats && stats.before ? stats.before[row[1]] : null;
+    const after = stats && stats.after ? stats.after[row[1]] : null;
+    if (before != null && after != null) {
+      const delta = svgNode("text", {x: width - m.r, y: Y(i) + 4, "text-anchor":"end", fill:"#1c1915", "font-size":11});
+      const change = after - before;
+      delta.textContent = (change > 0 ? "+" : "") + change.toFixed(2);
+      svg.appendChild(delta);
+    }
   });
   [["事前","#0072b2",0],["事后","#d55e00",1]].forEach(([name, color, i]) => {
     svg.appendChild(svgNode("rect", {x:m.l + i * 70, y:2, width:10, height:10, fill:color}));
@@ -950,6 +1110,61 @@ function drawIrf() {
   });
 }
 
+function downloadPng(hostId, filename) {
+  const svg = document.querySelector("#" + hostId + " svg");
+  if (!svg) return;
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  const box = (svg.getAttribute("viewBox") || "0 0 860 320").split(/[ ,]+/).map(Number);
+  const w = box[2] || 860;
+  const h = box[3] || 320;
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], {type:"image/svg+xml;charset=utf-8"}));
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = w * 2;
+    canvas.height = h * 2;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fbfaf6";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+    });
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+function csvCell(value) {
+  if (value == null || value === "") return "";
+  const text = String(value);
+  return /[",\n]/.test(text) ? '"' + text.replaceAll('"', '""') + '"' : text;
+}
+function downloadEventCsv() {
+  const anchor = state.spec.anchor;
+  const other = ["csi", "brent", "hsi", "dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || "";
+  const lines = [["event", "date", "window_months", "n_after", "partial", "anchor", "anchor_cum", "other", "other_cum", "excess", "haven"]];
+  allEvents().forEach(event => {
+    const stats = analyze(event.month, state.width);
+    const anchorCum = stats && stats.cum[anchor];
+    const otherCum = other && stats ? stats.cum[other] : null;
+    lines.push([
+      event.name, event.date, state.width, stats ? stats.nAfter : "", stats && stats.partial ? 1 : 0,
+      NAMES[anchor], anchorCum == null ? "" : anchorCum.toFixed(4),
+      other ? NAMES[other] : "", otherCum == null ? "" : otherCum.toFixed(4),
+      anchorCum == null || otherCum == null ? "" : (anchorCum - otherCum).toFixed(4),
+      stats && stats.after ? stats.after.score.toFixed(2) : "",
+    ]);
+  });
+  const blob = new Blob(["\uFEFF" + lines.map(row => row.map(csvCell).join(",")).join("\n")], {type:"text/csv;charset=utf-8"});
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "event_windows.csv";
+  link.click();
+}
 function download(hostId, filename) {
   const svg = document.querySelector("#" + hostId + " svg");
   if (!svg) return;
@@ -1006,7 +1221,7 @@ function seg(host, values, current, onPick) {
 }
 function boot() {
   state.spec = loadSpec();
-  document.getElementById("lede").textContent = "月度样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "，共 " + LAB.meta.n_months + " 个月。上面可以换事件和窗口，自定区可以加入自己的事件，并改锚资产、相关角色和脉冲响应的变量顺序。";
+  document.getElementById("lede").textContent = "月度样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "，共 " + LAB.meta.n_months + " 个月。先选一个经典事件，再看价格路径、相关差和避险强度。";
   const dateInput = document.getElementById("ev-date");
   dateInput.min = LAB.meta.sample_start + "-01";
   dateInput.max = LAB.meta.sample_end + "-28";
@@ -1036,6 +1251,9 @@ function boot() {
     const events = state.spec.events.slice();
     state.spec = defaultSpec();
     state.spec.events = events;
+    state.eventId = "hormuz_2026";
+    state.width = 6;
+    state.sessions = 40;
     saveSpec();
     refreshVariableControls();
     render();
@@ -1048,14 +1266,42 @@ function boot() {
     seg(widthHost, [{value:6,label:"6个月"},{value:12,label:"12个月"},{value:24,label:"24个月"}], state.width, value => { state.width = value; render(); });
   };
   const oldRender = render;
-  render = function () { paintSeg(); fillEvents(); paintEventList(); oldRender(); };
+  render = function () {
+    const busy = document.getElementById("busy");
+    busy.hidden = false;
+    requestAnimationFrame(() => {
+      paintSeg();
+      fillEvents();
+      paintEventList();
+      oldRender();
+      busy.hidden = true;
+    });
+  };
   document.getElementById("dl-path").addEventListener("click", () => download("path", "event_path.svg"));
+  document.getElementById("dl-path-png").addEventListener("click", () => downloadPng("path", "event_path.png"));
   document.getElementById("dl-gpr").addEventListener("click", () => download("gpr", "event_gpr.svg"));
+  document.getElementById("dl-gpr-png").addEventListener("click", () => downloadPng("gpr", "event_gpr.png"));
   document.getElementById("dl-corr").addEventListener("click", () => download("corr", "event_corr.svg"));
+  document.getElementById("dl-corr-png").addEventListener("click", () => downloadPng("corr", "event_corr.png"));
   document.getElementById("dl-haven").addEventListener("click", () => download("haven", "haven_regime.svg"));
+  document.getElementById("dl-haven-png").addEventListener("click", () => downloadPng("haven", "haven_regime.png"));
   document.getElementById("dl-heat").addEventListener("click", () => download("heat", "rolling_corr.svg"));
+  document.getElementById("dl-heat-png").addEventListener("click", () => downloadPng("heat", "rolling_corr.png"));
+  document.getElementById("dl-compare").addEventListener("click", () => download("compare", "event_compare.svg"));
+  document.getElementById("dl-compare-png").addEventListener("click", () => downloadPng("compare", "event_compare.png"));
+  document.getElementById("dl-csv").addEventListener("click", downloadEventCsv);
   document.getElementById("dl-irf").addEventListener("click", () => downloadGrid("irf", "var_irf_gpr.svg", 3, 280, 160));
-  document.getElementById("foot").textContent = "GPR：matteoiacoviello.com 日度 GPRD，月度取均值，" + LAB.meta.built + " 下载。黄金 GC=F、布伦特 BZ=F、美元指数 DX-Y.NYB、恒生 ^HSI 来自 Yahoo Finance。沪深300是新浪 sh000300 价格指数，不是中证公司的官方归档。收益是月末对数差分×100，未减无风险利率。期货月度收益含换月。避险强度是描述性打分，VAR 是递归顺序而不是结构识别。自定事件和变量保存在这台浏览器里。";
+  document.getElementById("foot").textContent = "GPR：Caldara–Iacoviello 日度 GPRD 的月均值。黄金 GC=F、布伦特 BZ=F、美元指数 DX-Y.NYB、恒生 ^HSI 来自 Yahoo Finance。沪深300是新浪 sh000300。";
+  const scenes = document.getElementById("scenes");
+  SCENES.forEach(scene => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ghost";
+    button.style.marginLeft = "0";
+    button.textContent = scene.label;
+    button.addEventListener("click", () => { state.eventId = scene.id; render(); });
+    scenes.appendChild(button);
+  });
   render();
 }
 
@@ -1074,7 +1320,7 @@ function fillEvents() {
       members.forEach(event => {
         const option = document.createElement("option");
         option.value = event.id;
-        option.textContent = event.date.slice(0, 7) + "  " + event.name;
+        option.textContent = event.date.slice(0, 7) + "  " + event.name + (TAGS[event.id] ? " · " + TAGS[event.id] : "");
         optgroup.appendChild(option);
       });
       select.appendChild(optgroup);

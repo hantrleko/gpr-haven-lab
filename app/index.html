@@ -186,6 +186,7 @@
       </span>
     </div>
     <div id="compare"></div>
+    <div class="scenes" id="compare-sort"></div>
     <p class="cap" id="compare-cap">每根柱是当前窗口里锚资产累计对数收益减去对照资产。选中的事件用更深的颜色。</p>
   </section>
 
@@ -195,11 +196,17 @@
       <span class="dl">
         <button class="ghost" type="button" id="dl-path">SVG</button>
         <button class="ghost" type="button" id="dl-path-png">PNG</button>
+        <button class="ghost" type="button" id="dl-caption">复制图注</button>
       </span>
     </div>
     <div id="path"></div>
     <div class="legend" id="path-legend"></div>
+    <div class="scenes" id="quick-assets"></div>
     <p class="cap" id="path-cap"></p>
+    <p class="note">勾选最多两个其他事件，和当前事件的锚资产路径叠在一起。</p>
+    <div class="scenes" id="overlay-picks"></div>
+    <div id="overlay"></div>
+    <p class="note" id="caption-out"></p>
   </section>
 
   <section class="panel">
@@ -288,7 +295,7 @@
       <p class="note">短窗口相关不稳定。6 个月只适合对照。苏莱曼尼之后的 6 个月穿过 2020 年 3 月疫情，油价跌幅不能写成那次袭击的效应。全样本 GPR 冲击的价格响应区间都盖住零，单次事件不能用平均脉冲来代替。</p>
     </div>
   </details>
-  <p class="site-footer">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。</p>
+  <p class="site-footer">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.2 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。</p>
   <footer id="foot"></footer>
 </main>
 <div id="tip"></div>
@@ -314,7 +321,7 @@ const PRICE_IDS = ["gold","brent","dxy","csi","hsi"];
 const SCORE_IDS = ["brent","dxy","csi","hsi","dgpr"];
 const VAR_IDS = ["dgpr","brent","dxy","gold","csi","hsi"];
 const STORE_KEY = "gpr-haven-custom-v1";
-const state = {eventId:"hormuz_2026", sessions:40, width:6, spec:null};
+const state = {eventId:"hormuz_2026", sessions:40, width:6, spec:null, sort:"time", overlay:[]};
 
 function defaultSpec() {
   return {
@@ -534,7 +541,8 @@ function sentence(event, stats) {
   else if (anchor === "gold" && g > 0 && c > 0 && state.spec.path.includes("csi")) { claim = "黄金与沪深300同时上涨，避险资产和风险资产没有反向分开。"; }
   else claim = "上面是锚资产和已选序列在这个窗口里的累计对数收益。";
   const cut = stats.partial ? "事后窗口不完整，累计收益只覆盖可得月份。" : "";
-  return {tone, text: event.name + "（" + event.date + "）之后 " + stats.nAfter + " 个月：" + names + "。" + corrBit + claim + cut + " 这是窗口内的描述，不是因果识别。"};
+  const windowBit = "样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "，价格 ±" + state.sessions + " 个交易日，相关窗口 " + state.width + " 个月。";
+  return {tone, text: event.name + "（" + event.date + "）之后 " + stats.nAfter + " 个月：" + names + "。" + corrBit + claim + cut + windowBit + " 这是窗口内的描述，不是因果识别。"};
 }
 function pairKey(id) {
   return {brent:"Brent", dxy:"Dxy", csi:"Csi", hsi:"Hsi", dgpr:"Gpr"}[id];
@@ -708,17 +716,37 @@ function rollingHaven() {
     return stats ? Math.round(stats.score * 100) / 100 : null;
   });
 }
+function havenMedian() {
+  const values = rollingHaven().filter(value => value != null && isFinite(value)).slice().sort((a, b) => a - b);
+  if (!values.length) return 50;
+  const mid = Math.floor(values.length / 2);
+  return values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+}
+function havenPercentile(score) {
+  const values = rollingHaven().filter(value => value != null && isFinite(value));
+  if (!values.length || score == null) return "—";
+  return Math.round(100 * values.filter(value => value <= score).length / values.length);
+}
+function compareRows() {
+  const anchor = state.spec.anchor;
+  const other = ["csi", "brent", "hsi", "dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || state.spec.path.find(id => id !== anchor);
+  const rows = allEvents().map(event => {
+    const stats = analyze(event.month, state.width);
+    const excess = stats && other && stats.cum[anchor] != null && stats.cum[other] != null ? stats.cum[anchor] - stats.cum[other] : null;
+    return {event, excess, haven: stats && stats.after ? stats.after.score : null, stats};
+  });
+  if (state.sort === "excess") rows.sort((a, b) => (b.excess ?? -1e9) - (a.excess ?? -1e9));
+  if (state.sort === "haven") rows.sort((a, b) => (b.haven ?? -1e9) - (a.haven ?? -1e9));
+  return {rows, other, anchor};
+}
 function drawCompare() {
   const host = document.getElementById("compare");
   if (!host) return;
-  const anchor = state.spec.anchor;
-  const other = ["csi", "brent", "hsi", "dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || state.spec.path.find(id => id !== anchor);
-  const events = allEvents();
-  const values = events.map(event => {
-    const stats = analyze(event.month, state.width);
-    if (!stats || stats.cum[anchor] == null || !other || stats.cum[other] == null) return null;
-    return stats.cum[anchor] - stats.cum[other];
-  });
+  const packed = compareRows();
+  const events = packed.rows.map(row => row.event);
+  const values = packed.rows.map(row => row.excess);
+  const other = packed.other;
+  const anchor = packed.anchor;
   host.innerHTML = "";
   const width = 860;
   const rowH = 26;
@@ -749,7 +777,62 @@ function drawCompare() {
   });
   host.appendChild(svg);
   const cap = document.getElementById("compare-cap");
-  if (cap && other) cap.textContent = "柱长是事后 " + state.width + " 个月，" + NAMES[anchor] + "累计对数收益减去" + NAMES[other] + "。暖色为正，冷色为负，深色是当前事件。";
+  if (cap && other) cap.textContent = "柱长是事后 " + state.width + " 个月，" + NAMES[anchor] + "累计对数收益减去" + NAMES[other] + "。暖色为正，冷色为负，深色是当前事件。可按时间、差额或避险强度排序。";
+}
+const OVERLAY_COLORS = ["#1F4E79", "#C47B12", "#D55E00"];
+function paintOverlayPicks() {
+  const host = document.getElementById("overlay-picks");
+  if (!host) return;
+  state.overlay = state.overlay.filter(id => id !== state.eventId && allEvents().some(event => event.id === id)).slice(0, 2);
+  host.innerHTML = "";
+  allEvents().forEach(event => {
+    if (event.id === state.eventId) return;
+    const label = document.createElement("label");
+    label.className = "pick";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = state.overlay.includes(event.id);
+    box.addEventListener("change", () => {
+      if (box.checked && state.overlay.length >= 2) {
+        box.checked = false;
+        return;
+      }
+      state.overlay = box.checked ? state.overlay.concat([event.id]) : state.overlay.filter(id => id !== event.id);
+      render();
+    });
+    label.append(box, document.createTextNode(event.name));
+    host.appendChild(label);
+  });
+}
+function drawOverlay() {
+  const host = document.getElementById("overlay");
+  if (!host) return;
+  const ids = [state.eventId].concat(state.overlay).slice(0, 3);
+  if (ids.length < 2) {
+    host.innerHTML = "";
+    return;
+  }
+  const anchor = state.spec.anchor;
+  drawChart(host, {
+    title: "锚资产路径叠加",
+    height: 260, ref: 100, mark: 0, markLabel: "事件日",
+    yFormat: v => v.toFixed(0),
+    xTicks: [-state.sessions, 0, state.sessions - 1],
+    series: ids.map((id, index) => {
+      const event = allEvents().find(item => item.id === id);
+      const path = indexedPath(LAB.daily[anchor], event.date, state.sessions);
+      return path
+        ? {name: event.name, color: OVERLAY_COLORS[index], width: index === 0 ? 2.6 : 1.5, x: path.tau, y: path.value}
+        : {name: event.name, color: OVERLAY_COLORS[index], x: [], y: []};
+    }),
+  });
+}
+function figureCaption() {
+  const event = activeEvent();
+  const stats = analyze(event.month, state.width);
+  const anchor = state.spec.anchor;
+  const bits = state.spec.path.map(id => NAMES[id] + " " + fmt(stats && stats.cum[id]) + "%").join("，");
+  return "图 " + event.name + "（" + event.date + "）前后 " + state.sessions + " 个交易日的价格路径，指数以 t = -1 收盘价为 100。锚资产为" + NAMES[anchor] + "。事后 " + (stats ? stats.nAfter : "—") + " 个月累计对数收益：" + bits + "。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。GPR 为 Caldara–Iacoviello 日度 GPRD 的月均值；黄金、布伦特、美元指数和恒生来自 Yahoo Finance，沪深300来自新浪财经。描述性窗口，不是因果识别。EF Lab V0.2，仅供学习与研究，不构成投资建议。";
 }
 function drawBoard(width) {
   const table = document.getElementById("board");
@@ -788,7 +871,7 @@ function render() {
   const box = document.getElementById("readout");
   const said = sentence(event, stats);
   box.className = "readout " + (said.tone || "");
-  box.innerHTML = "<div>" + said.text + "</div><p class='note'>" + event.note + "</p>";
+  box.innerHTML = "<div>" + said.text + "</div><details><summary>事件背景</summary><p class='note'>" + event.note + "</p></details>";
   const anchor = state.spec.anchor;
   const score = stats && stats.after ? stats.after.score : null;
   const tone = score == null ? "" : score >= 60 ? "color:#0072b2" : score < 45 ? "color:#d55e00" : "";
@@ -809,7 +892,7 @@ function render() {
   } else {
     meter.style.width = Math.max(0, Math.min(100, score)) + "%";
     meter.style.background = score >= 60 ? "#0072B2" : score < 45 ? "#D55E00" : "#C47B12";
-    meterLabel.textContent = "避险强度 " + score.toFixed(0) + " / 100。50 是零相关。蓝色 ≥ 60，橙色 < 45。";
+    meterLabel.textContent = "避险强度 " + score.toFixed(0) + " / 100，约在 36 个月滚动历史的第 " + havenPercentile(score) + " 百分位（中位数 " + havenMedian().toFixed(0) + "）。50 是零相关。蓝色 ≥ 60，橙色 < 45。";
   }
 
   const pathIds = state.spec.path.includes(anchor) ? state.spec.path : [anchor].concat(state.spec.path);
@@ -824,8 +907,16 @@ function render() {
       return path ? {name: NAMES[name] + (name === anchor ? "（锚）" : ""), color: COLORS[name], width: name === anchor ? 2.6 : 1.25, x: path.tau, y: path.value} : {name: NAMES[name], color: COLORS[name], x:[], y:[]};
     }),
   });
-  document.getElementById("path-legend").innerHTML = pathIds.map(name => "<span><i class='swatch' style='background:" + COLORS[name] + "'></i>" + NAMES[name] + "</span>").join("");
-  document.getElementById("path-cap").textContent = "暖色是黄金和布伦特，冷色是美元、沪深300和恒生。更粗的线是锚资产。竖线标的是事件日。t = -1 的收盘价设为 100。";
+  document.querySelectorAll("[data-quick]").forEach(button => {
+    button.setAttribute("aria-pressed", String(state.spec.path.includes(button.dataset.quick)));
+  });
+  document.querySelectorAll("[data-sort]").forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.sort === state.sort));
+  });
+  document.getElementById("path-legend").innerHTML = pathIds.map(name => "<span><i class='swatch' style='background:" + COLORS[name] + "'></i>" + NAMES[name] + (name === anchor ? "（锚）" : "") + "</span>").join("");
+  document.getElementById("path-cap").textContent = "暖色是黄金和布伦特，冷色是美元、沪深300和恒生。更粗的线是锚资产。竖线标的是事件日。t = -1 的收盘价设为 100。相对表现以各序列自己的事件前收盘为 100。";
+  paintOverlayPicks();
+  drawOverlay();
 
   const gprClock = anchorPath || indexedPath(LAB.daily.gold, event.date, state.sessions);
   const gprMap = new Map(LAB.daily.gpr.dates.map((date, i) => [date, LAB.daily.gpr.close[i]]));
@@ -1232,7 +1323,9 @@ function boot() {
     const date = document.getElementById("ev-date").value;
     const note = document.getElementById("ev-note").value.trim();
     const msg = document.getElementById("ev-msg");
-    if (!name || !date) { msg.textContent = "名称和日期都要填。"; return; }
+    if (!name || !date) { msg.textContent = "名称和日期都要填。例：名称「俄乌冲突全面升级」，日期 2022-02-24。"; return; }
+    if (name.length < 2) { msg.textContent = "名称至少两个字。"; return; }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { msg.textContent = "日期要是 YYYY-MM-DD。"; return; }
     const month = date.slice(0, 7);
     if (!LAB.months.includes(month)) {
       msg.textContent = "这个月不在样本里（" + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "）。";
@@ -1241,7 +1334,7 @@ function boot() {
     const id = "custom-" + Date.now();
     state.spec.events.push({id, name, date, month, group:"自定事件", note: note || "页面上自定的事件。"});
     state.eventId = id;
-    msg.textContent = "已加入，并正在看这个事件。它保存在这台浏览器里。";
+    msg.textContent = "已加入「" + name + "」（" + date + "）。它出现在上方事件列表，并已切换过去。";
     document.getElementById("ev-name").value = "";
     document.getElementById("ev-note").value = "";
     saveSpec();
@@ -1254,6 +1347,8 @@ function boot() {
     state.eventId = "hormuz_2026";
     state.width = 6;
     state.sessions = 40;
+    state.overlay = [];
+    state.sort = "time";
     saveSpec();
     refreshVariableControls();
     render();
@@ -1290,6 +1385,39 @@ function boot() {
   document.getElementById("dl-compare").addEventListener("click", () => download("compare", "event_compare.svg"));
   document.getElementById("dl-compare-png").addEventListener("click", () => downloadPng("compare", "event_compare.png"));
   document.getElementById("dl-csv").addEventListener("click", downloadEventCsv);
+  document.getElementById("dl-caption").addEventListener("click", () => {
+    const text = figureCaption();
+    const out = document.getElementById("caption-out");
+    out.textContent = text;
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => { out.textContent = "已复制。 " + text; }).catch(() => {});
+  });
+  ["brent", "dxy", "csi", "hsi"].forEach(id => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ghost";
+    button.style.marginLeft = "0";
+    button.dataset.quick = id;
+    button.textContent = NAMES[id];
+    button.addEventListener("click", () => {
+      if (id === state.spec.anchor) return;
+      state.spec.path = state.spec.path.includes(id) ? state.spec.path.filter(item => item !== id) : state.spec.path.concat([id]);
+      if (!state.spec.path.includes(state.spec.anchor)) state.spec.path.push(state.spec.anchor);
+      saveSpec();
+      refreshVariableControls();
+      render();
+    });
+    document.getElementById("quick-assets").appendChild(button);
+  });
+  [{id:"time", label:"按时间"}, {id:"excess", label:"按相对表现"}, {id:"haven", label:"按避险强度"}].forEach(item => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "ghost";
+    button.style.marginLeft = "0";
+    button.dataset.sort = item.id;
+    button.textContent = item.label;
+    button.addEventListener("click", () => { state.sort = item.id; render(); });
+    document.getElementById("compare-sort").appendChild(button);
+  });
   document.getElementById("dl-irf").addEventListener("click", () => downloadGrid("irf", "var_irf_gpr.svg", 3, 280, 160));
   document.getElementById("foot").textContent = "GPR：Caldara–Iacoviello 日度 GPRD 的月均值。黄金 GC=F、布伦特 BZ=F、美元指数 DX-Y.NYB、恒生 ^HSI 来自 Yahoo Finance。沪深300是新浪 sh000300。";
   const scenes = document.getElementById("scenes");

@@ -2,6 +2,8 @@
 
 在线页面：<https://hantrleko.github.io/gpr-haven-lab/>
 
+当前版本 V0.2。每日改动记在 `CHANGELOG.md`。
+
 交互页面用来对照事件叙事。`figs/` 里的 PDF 是同一套定义导出的图。
 
 ## 打开

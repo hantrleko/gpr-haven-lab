@@ -2,27 +2,45 @@
 
 在线页面：<https://hantrleko.github.io/gpr-haven-lab/>
 
-当前版本 V0.4。每日改动记在 `CHANGELOG.md`。
+当前版本 V0.5。每日改动记在 `CHANGELOG.md`。
 
-交互页面用来对照事件叙事。`figs/` 里的 PDF 是同一套定义导出的图。页面右上角可以切到英文。
+交互页面用来对照事件叙事。`figs/` 里的 PDF 是同一套定义导出的图。页面右上角可以切到英文。选中的事件和窗口写在网址里，例如 `https://hantrleko.github.io/gpr-haven-lab/?e=ukraine_2022&w=12&d=40`。早报提到对应新闻时，用这个链接。每个内置事件还有一张竖版卡片，在 `cards/` 里，页面上的「竖版卡片」会打开它。
 
 ## 打开
 
-在线页面由 `docs/` 发布到 GitHub Pages。本地预览不要直接双击 html，在 `app/` 目录运行本地服务器，例如 `python -m http.server 8877`。`app/` 和 `docs/` 的页面、`lab_data.json` 和图片是同一套。
+在线页面由 `docs/` 发布到 GitHub Pages。本地预览不要直接双击 html，在 `app/` 目录运行本地服务器，例如 `python -m http.server 8877`。`app/` 和 `docs/` 的页面、`lab_data.json`、图片和卡片是同一套。
 
-数据不是自动日更。当前发布样本止于 2026-09，原始 GPR 文件在 2026-10-13 下载。要更新，先替换 `data/raw/` 里的文件，再运行 `build.py`。
+数据不是自动日更。样本终点固定在 `2026-09`（`SAMPLE_END`，按 2026-10-13 这个截止日期钉住）。换一天运行 `build.py` 也不会把样本延到下一个月，除非改这个常数。
 
-可选事件包括霍尔木兹（2019、2026）、阿布凯克、伊核制裁、克里米亚、对俄原油禁运、俄乌、加沙、2024 与 2025 年的美伊冲突。日期是手工锚点，页面上附了来源链接，没有逐条核对原始电讯。日期框可以临时加一个事件日。
+可选事件包括霍尔木兹（2019、2026）、阿布凯克、伊核制裁、克里米亚、对俄原油禁运、俄乌、加沙、2024 与 2025 年的美伊冲突，以及英国脱欧、朝鲜第六次核试验、佩洛西访台。日期是手工锚点，页面上附了来源链接，没有逐条核对原始电讯。事件名不写黄金涨跌。日期框可以临时加一个事件日，但样本最后一个月（2026-09）没有事后月份，页面会拒绝。
 
-默认相关窗口是 12 个月。6 个月大约只有 6 个点，仍可手选。
+默认相关窗口是 12 个月。6 个月大约只有 6 个点，仍可手选。总表最后一列是黄金累计收益相对普通月份的分位。这些普通月份按种子 20261013 抽取，窗口里不包含内置事件月。
 
 ## 重跑
 
 ```powershell
 python build.py
+python -m unittest tests.test_benchmark
 ```
 
-原始文件在 `data/raw/`。构建不重新下载。样本自动停在已结束的月份。
+原始行情不要提交。雅虎 `GC=F`、`BZ=F`、`DX-Y.NYB`、`^HSI` 和新浪 `sh000300` 的条款没有把再分发权授给本仓库，所以 `data/raw/` 里的这些文件只留在本机，并写在 `.gitignore` 里。GPR 日度文件从 [matteoiacoviello.com](https://www.matteoiacoviello.com/gpr.htm) 下载，引用 Caldara–Iacoviello，不在 MIT 许可里重新授权。
+
+`lab_data.json` 和 `output/panel_monthly.csv` 是算出来给页面用的。MIT 许可只覆盖 `src/`、`build.py` 和页面模板，不覆盖这些价格。
+
+要在另一台机器上重跑，把下列文件放到 `data/raw/`，再运行 `build.py`。样本终点仍是代码里的 `SAMPLE_END`。
+
+| 文件 | 内容 |
+|---|---|
+| `gold_gc.csv` | 雅虎 `GC=F` |
+| `brent_bz.csv` | 雅虎 `BZ=F` |
+| `dxy.csv` | 雅虎 `DX-Y.NYB` |
+| `hsi.csv` | 雅虎 `^HSI` |
+| `csi300_sina.csv` | 新浪 `sh000300` |
+| `data_gpr_daily_recent.xls` | Caldara–Iacoviello 日度 GPR |
+
+## 许可
+
+代码许可见 `LICENSE`。行情数据不能凭这个许可再分发。
 
 ## 序列
 

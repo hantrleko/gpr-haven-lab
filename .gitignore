@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 .DS_Store
 src/havenlab/_check.js
+data/raw/*.csv
+data/raw/*.metadata.json
+data/raw/*.xls
+data/raw/*.xlsx
+_lbma_tmp.csv

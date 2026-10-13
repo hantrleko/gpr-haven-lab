@@ -11,6 +11,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from havenlab.cards import copy_cards, export_cards
 from havenlab.engine import build_lab, canvas_payload, web_payload, write_tables
 from havenlab.figures import export_all
 
@@ -44,6 +45,9 @@ def main() -> None:
     (app.parent / "lab_data.json").write_text(blob, encoding="utf-8")
     (docs / "lab_data.json").write_text(blob, encoding="utf-8")
     (docs / ".nojekyll").write_text("", encoding="utf-8")
+    card_dir = app.parent / "cards"
+    export_cards(lab, card_dir)
+    copy_cards(card_dir, docs / "cards")
     processed = ROOT / "data" / "processed"
     processed.mkdir(parents=True, exist_ok=True)
     (processed / "canvas_payload.json").write_text(

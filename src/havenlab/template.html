@@ -45,6 +45,7 @@
   h1 { font-size: 28px; line-height: 1.25; font-weight: 650; margin: 0 0 8px; }
   p { margin: 0; }
   .lede { color: var(--muted); max-width: 46rem; font-size: 14px; }
+  .verdict { max-width: 46rem; margin-top: 10px; font-size: 16px; }
   label { display: block; color: var(--muted); margin-bottom: 4px; }
   .note, .cap, .legend, .site-footer, footer, th, .pick, .var-row, .ev-item, .busy { font-size: 14px; }
   h2 { font-size: 18px; font-weight: 650; margin: 0; overflow-wrap: anywhere; }
@@ -100,6 +101,7 @@
   tr.click { cursor: pointer; }
   tr.active td { background: #e7eef5; }
   .ghost { margin-left: 8px; }
+  a.ghost { display: inline-block; text-decoration: none; color: inherit; }
   .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .irf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   footer, .site-footer { color: var(--muted); font-size: 14px; margin-top: 8px; }
@@ -148,22 +150,25 @@
     </div>
   </header>
   <p class="lede" id="lede"></p>
+  <p class="verdict" id="verdict"></p>
+  <p class="note" id="gold-note"></p>
   <div class="controls">
     <div>
       <label for="event" data-en="Event">事件</label>
       <select id="event"></select>
     </div>
     <div>
-      <label id="lab-sessions" class="hint" data-en="Price window" title="各市场用自己的交易日。0 是事件日或其后第一个交易日。默认把事件日收盘设为 100。">价格窗口</label>
+      <label id="lab-sessions" class="hint" data-en="Price window" data-title-en="Each market uses its own sessions. 0 is the event day or the next session. The event-day close is 100 by default." title="各市场用自己的交易日。0 是事件日或其后第一个交易日。默认把事件日收盘设为 100。">价格窗口</label>
       <div class="seg" id="seg-sessions" role="group" aria-labelledby="lab-sessions"></div>
     </div>
     <div>
-      <label id="lab-width" class="hint" data-en="Correlation window" title="事前是事件月之前的 W 个月，事后从事件月起再数 W 个月。默认 12 个月。6 个月只有大约 6 个数据点，噪声大。">月度相关窗口</label>
+      <label id="lab-width" class="hint" data-en="Correlation window" data-title-en="Before is the W months prior to the event month. After starts at the event month and counts W months. The default is 12 because six months is about six points." title="事前是事件月之前的 W 个月，事后从事件月起再数 W 个月。默认 12 个月。6 个月只有大约 6 个数据点，噪声大。">月度相关窗口</label>
       <div class="seg" id="seg-width" role="group" aria-labelledby="lab-width"></div>
     </div>
     <div>
       <label id="lab-preset" data-en="Paper preset">论文场景</label>
       <button class="ghost reset-btn" id="reset-spec" type="button" data-en="Restore paper preset">恢复论文设定</button>
+      <button class="ghost" id="copy-link" type="button" data-en="Copy link">复制链接</button>
     </div>
     <div class="scenes" id="scenes"></div>
   </div>
@@ -175,9 +180,9 @@
       <div>
         <h3 data-en="Custom event">自定事件</h3>
         <p class="note" data-en="Use YYYY-MM-DD inside the sample. Example: 2022-02-24, named “Full-scale invasion of Ukraine”.">日期用 YYYY-MM-DD，并且要落在样本内。例：2022-02-24，名称写「俄乌冲突全面升级」。</p>
-        <div class="field"><label for="ev-name" data-en="Name">名称</label><input id="ev-name" type="text" maxlength="40" placeholder="俄乌冲突全面升级" /></div>
+        <div class="field"><label for="ev-name" data-en="Name">名称</label><input id="ev-name" type="text" maxlength="40" data-ph-en="Full-scale invasion of Ukraine" placeholder="俄乌冲突全面升级" /></div>
         <div class="field"><label for="ev-date" data-en="Date">日期</label><input id="ev-date" type="date" /></div>
-        <div class="field"><label for="ev-note" data-en="Note">备注</label><input id="ev-note" type="text" maxlength="160" placeholder="可选。写清这个日期锚的是哪一天的新闻" /></div>
+        <div class="field"><label for="ev-note" data-en="Note">备注</label><input id="ev-note" type="text" maxlength="160" data-ph-en="Optional. Say which news day this anchor is." placeholder="可选。写清这个日期锚的是哪一天的新闻" /></div>
         <button class="ghost" id="ev-add" type="button" style="margin-left:0" data-en="Add and view">加入并查看</button>
         <p class="note" id="ev-msg"></p>
         <div id="ev-list"></div>
@@ -185,7 +190,7 @@
       <div>
         <h3 data-en="Custom variables">自定变量</h3>
         <div class="field">
-          <label for="anchor" class="hint" data-en="Anchor" title="路径以锚资产事件前收盘为 100。相关和避险强度都相对这个序列。">锚资产</label>
+          <label for="anchor" class="hint" data-en="Anchor" data-title-en="Correlations and the haven score are measured against this series." title="路径以锚资产为基准。相关和避险强度都相对这个序列。">锚资产</label>
           <select id="anchor"></select>
         </div>
         <p class="note" data-en="Series drawn on the price path. The anchor stays on and uses a thicker line.">价格路径里画哪些序列。锚资产始终保留，并用更粗的线。</p>
@@ -229,6 +234,7 @@
         <button class="ghost" type="button" id="base-event" data-en="Event day = 100">事件日=100</button>
         <button class="ghost" type="button" id="base-pre" data-en="Pre-event = 100">事件前=100</button>
         <button class="ghost" type="button" id="dl-caption" data-en="Copy caption">复制图注</button>
+        <a class="ghost" id="card-link" href="cards/hormuz_2026.jpg">竖版卡片</a>
       </span>
     </div>
     <div id="path"></div>
@@ -314,6 +320,7 @@
       <button class="ghost" type="button" id="dl-irf" data-en="Download SVG">下载 SVG</button>
     </div>
     <div class="irf-grid" id="irf"></div>
+    <p id="dl-status" class="note" role="status"></p>
     <table id="irf-table" class="data-table"></table>
     <p class="cap" id="irf-cap"></p>
   </section>
@@ -333,9 +340,11 @@
       <p class="note">价格按各市场自己的交易日对齐，不对齐到同一个日历日，也不跨市场填充缺失。月末收益用该月最后一个可得收盘。日度路径里，事件日是事件日期当天或其后第一个交易日。归一化可以选择该日收盘 = 100，或事件前最后一个收盘 = 100。</p>
       <p class="note">论文设定的脉冲响应是六变量月度 VAR，滞后由 AIC 在 1 至 3 阶里选出，本样本为 1 阶。Cholesky 顺序：GPR 变动、布伦特、美元、黄金、沪深300、恒生。图中是 1 个标准差正向 GPR 冲击的累计响应，阴影是 200 次残差自助的 90% 区间。自定顺序只重估 1 阶点估计，没有区间。这是递归排序，不是结构因果。</p>
       <p class="note">短窗口相关不稳定。打开页面默认用 12 个月；6 个月大约只有 6 个点，留给需要对照的时候。苏莱曼尼之后的 6 个月穿过 2020 年 3 月疫情。2026 年 3 月霍尔木兹的日期，是用路透 2026-03-26 关于海峡中断的报道回溯到 3 月 2 日，本实验室没有逐条核对原始电讯。全样本 GPR 冲击的价格响应区间都盖住零。</p>
+      <p class="note">对照分布是从没有落入这些事件月的完整窗口里，按种子 20261013 抽出最多 120 个。分位高只说明黄金的累计涨幅在普通月份里靠前，不是事件造成的异常。内置日期是事后挑选的，其中多数和中东或石油有关。英国脱欧、朝鲜核试验和佩洛西访台是补上的非中东日期。</p>
+      <p class="note">2026-01-30 的 GC=F 对数跌幅大于 2013-04-15。这是连续期货合约，不是 LBMA 定盘。本构建没有配上现货，不能排除换月跳变。月度收益用月末对月末，会把这个交易日算进 2026 年 1 月。</p>
     </div>
   </details>
-  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.4 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现请运行仓库里的 <code>build.py</code>。</p>
+  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.5 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现请运行仓库里的 <code>build.py</code>。</p>
   <footer id="foot"></footer>
 </main>
 <div id="tip"></div>
@@ -355,20 +364,17 @@ const SOURCES = {
   iran_israel_2024: {url: "https://www.reuters.com/world/middle-east/iran-launches-drone-attack-israel-2024-04-13/", label: "Reuters, 2024-04-13"},
   us_iran_2025: {url: "https://carnegieendowment.org/middle-east/diwan/2025/06/the-united-states-has-attacked-irans-nuclear-facilities", label: "Carnegie, 2025-06-22"},
   hormuz_2026: {url: "https://www.reuters.com/business/energy/barclays-sees-1314-million-bpd-oil-supply-loss-prolonged-hormuz-disruption-2026-03-26/", label: "Reuters, 2026-03-26"},
-};
-const TAGS = {
-  libya_2011: "油价上行",
-  ukraine_2022: "相关转负",
-  gaza_2023: "黄金上涨",
-  us_iran_2025: "冲突升级",
-  hormuz_2026: "黄金下跌",
+  brexit_2016: {url: "https://www.bbc.co.uk/news/politics/eu_referendum/results", label: "BBC, 2016-06-24"},
+  nk_2017: {url: "https://www.bbc.com/news/world-asia-41139445", label: "BBC, 2017-09-03"},
+  taiwan_2022: {url: "https://www.reuters.com/world/asia-pacific/pelosi-expected-arrive-taiwan-tuesday-sources-say-2022-08-02/", label: "Reuters, 2022-08-02"},
 };
 const SCENES = [
-  {id:"hormuz_2026", label:"霍尔木兹 · 黄金下跌", labelEn:"Hormuz · gold down"},
-  {id:"ukraine_2022", label:"俄乌 · 相关转负", labelEn:"Ukraine · correlation turns negative"},
-  {id:"gaza_2023", label:"哈马斯 · 黄金上涨", labelEn:"Hamas · gold up"},
-  {id:"libya_2011", label:"利比亚 · 油价上行", labelEn:"Libya · oil up"},
-  {id:"us_iran_2025", label:"核设施 · 冲突升级", labelEn:"Nuclear sites · escalation"},
+  {id:"hormuz_2026", label:"2026 霍尔木兹", labelEn:"2026 Hormuz"},
+  {id:"ukraine_2022", label:"2022 俄乌", labelEn:"2022 Ukraine"},
+  {id:"gaza_2023", label:"2023 哈马斯", labelEn:"2023 Hamas"},
+  {id:"brexit_2016", label:"2016 英国脱欧", labelEn:"2016 Brexit"},
+  {id:"taiwan_2022", label:"2022 台海", labelEn:"2022 Taiwan Strait"},
+  {id:"nk_2017", label:"2017 朝鲜核试验", labelEn:"2017 North Korea"},
 ];
 const EVENT_EN = {
   libya_2011: "Libya escalation",
@@ -595,7 +601,26 @@ function activeEvent() {
   return allEvents().find(item => item.id === state.eventId) || LAB.events[0];
 }
 function eventTitle(event) {
-  return state.lang === "en" ? (EVENT_EN[event.id] || event.name) : event.name;
+  if (state.lang === "en") return event.name_en || EVENT_EN[event.id] || event.name;
+  return event.name;
+}
+function eventNote(event) {
+  if (state.lang === "en" && event.note_en) return event.note_en;
+  return event.note;
+}
+function monthHasAfter(month) {
+  const idx = LAB.months.indexOf(month);
+  return idx >= 0 && idx < LAB.months.length - 1;
+}
+function sessionAfter(date) {
+  return LAB.daily.gold.dates.some(item => item > date);
+}
+function goldPct(value) {
+  const pack = LAB.placebo && LAB.placebo[String(state.width)];
+  if (!pack || !pack.gold || !pack.gold.length || value == null || !isFinite(value)) return null;
+  let n = 0;
+  for (const item of pack.gold) if (item <= value + 1e-9) n++;
+  return n / pack.gold.length;
 }
 function sentence(event, stats) {
   const title = eventTitle(event);
@@ -899,7 +924,7 @@ function drawCompare() {
   events.forEach((event, index) => {
     const y = m.t + index * rowH + 12;
     const label = svgNode("text", {x: m.l - 8, y: y + 4, "text-anchor": "end", fill: event.id === state.eventId ? "#1f4b73" : "#1c1915", "font-size": 13});
-    label.textContent = (state.lang !== "en" && TAGS[event.id] ? TAGS[event.id] + " · " : "") + eventTitle(event);
+    label.textContent = eventTitle(event);
     svg.appendChild(label);
     const value = values[index];
     if (value == null) return;
@@ -946,7 +971,7 @@ function paintOverlayPicks() {
       state.overlay = box.checked ? state.overlay.concat([event.id]) : state.overlay.filter(id => id !== event.id);
       render();
     });
-    label.append(box, document.createTextNode(event.name));
+    label.append(box, document.createTextNode(eventTitle(event)));
     host.appendChild(label);
   });
 }
@@ -978,8 +1003,8 @@ function drawOverlay() {
       const event = allEvents().find(item => item.id === id);
       const path = indexedPath(LAB.daily[anchor], event.date, state.sessions);
       return path
-        ? {name: event.name, color: OVERLAY_COLORS[index], width: index === 0 ? 2.6 : 1.5, x: path.tau, y: path.value}
-        : {name: event.name, color: OVERLAY_COLORS[index], x: [], y: []};
+        ? {name: eventTitle(event), color: OVERLAY_COLORS[index], width: index === 0 ? 2.6 : 1.5, x: path.tau, y: path.value}
+        : {name: eventTitle(event), color: OVERLAY_COLORS[index], x: [], y: []};
     }),
   });
 }
@@ -987,15 +1012,22 @@ function figureCaption() {
   const event = activeEvent();
   const stats = analyze(event.month, state.width);
   const anchor = state.spec.anchor;
-  const bits = state.spec.path.map(id => NAMES[id] + " " + fmt(stats && stats.cum[id]) + "%").join("，");
-  return "图 " + event.name + "（" + event.date + "）前后 " + state.sessions + " 个交易日的价格路径，指数以" + (state.base === "pre" ? "事件前最后收盘" : "事件日收盘") + "为 100。锚资产为" + NAMES[anchor] + "。事后 " + (stats ? stats.nAfter : "—") + " 个月累计对数收益：" + bits + "。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。GPR 为 Caldara–Iacoviello 日度 GPRD 的月均值；黄金、布伦特、美元指数和恒生来自 Yahoo Finance，沪深300来自新浪财经。描述性窗口，不是因果识别。EF Lab V0.4，仅供学习与研究，不构成投资建议。";
+  const en = state.lang === "en";
+  const bits = state.spec.path.map(id => NAMES[id] + " " + fmt(stats && stats.cum[id]) + "%").join(en ? "; " : "，");
+  if (en) {
+    return "Figure. Price path around " + eventTitle(event) + " (" + event.date + "), " + state.sessions + " sessions, indexed to 100 at the " + (state.base === "pre" ? "last close before the event" : "event-day close") + ". Anchor: " + NAMES[anchor] + ". Cumulative log return over " + (stats ? stats.nAfter : "—") + " months after: " + bits + ". Sample " + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ". Descriptive window, not causal identification. EF Lab V0.5. For study only. Not investment advice.";
+  }
+  return "图 " + eventTitle(event) + "（" + event.date + "）前后 " + state.sessions + " 个交易日的价格路径，指数以" + (state.base === "pre" ? "事件前最后收盘" : "事件日收盘") + "为 100。锚资产为" + NAMES[anchor] + "。事后 " + (stats ? stats.nAfter : "—") + " 个月累计对数收益：" + bits + "。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。GPR 为 Caldara–Iacoviello 日度 GPRD 的月均值；黄金、布伦特、美元指数和恒生来自 Yahoo Finance，沪深300来自新浪财经。描述性窗口，不是因果识别。EF Lab V0.5，仅供学习与研究，不构成投资建议。";
 }
 function drawBoard(width) {
   const table = document.getElementById("board");
+  const en = state.lang === "en";
   const anchor = state.spec.anchor;
   const other = ["csi","brent","hsi","dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || state.spec.path.find(id => id !== anchor);
   const pair = shownPairs().find(item => item.id === "csi") || shownPairs()[0];
-  const headers = ["事件", "事后" + NAMES[anchor], other ? NAMES[other] : "—", other ? NAMES[anchor] + "−" + NAMES[other] : "差额", pair ? "相关变化" : "相关", "避险强度", "月数"];
+  const headers = en
+    ? ["Event", "After " + NAMES[anchor], other ? NAMES[other] : "—", other ? NAMES[anchor] + " − " + NAMES[other] : "Gap", pair ? "Corr. change" : "Corr.", "Haven", "Months", "Gold percentile"]
+    : ["事件", "事后" + NAMES[anchor], other ? NAMES[other] : "—", other ? NAMES[anchor] + "−" + NAMES[other] : "差额", pair ? "相关变化" : "相关", "避险强度", "月数", "黄金分位"];
   table.innerHTML = "<thead><tr>" + headers.map(h => "<th>" + h + "</th>").join("") + "</tr></thead>";
   const body = document.createElement("tbody");
   allEvents().forEach(event => {
@@ -1005,14 +1037,16 @@ function drawBoard(width) {
     const key = pair ? "c" + pairKey(pair.id) : "";
     const delta = key && stats && stats.before && stats.after && stats.before[key] != null && stats.after[key] != null ? stats.after[key] - stats.before[key] : null;
     const excess = other && stats && stats.cum[anchor] != null && stats.cum[other] != null ? stats.cum[anchor] - stats.cum[other] : null;
+    const pct = stats && !stats.partial ? goldPct(stats.cum.gold) : null;
     const cells = [
-      event.name,
+      eventTitle(event),
       fmt(stats && stats.cum[anchor]),
       other ? fmt(stats && stats.cum[other]) : "—",
       fmt(excess),
       delta == null ? "—" : fmt(delta, 2),
       stats && stats.after ? stats.after.score.toFixed(0) : "—",
       stats ? String(stats.nAfter) + (stats.partial ? "*" : "") : "—",
+      pct == null ? "—" : Math.round(100 * pct) + "%",
     ];
     cells.forEach(text => { const td = document.createElement("td"); td.textContent = text; tr.appendChild(td); });
     tr.addEventListener("click", () => { state.eventId = event.id; render(); });
@@ -1055,13 +1089,21 @@ function applyI18n() {
     ? {time:"By time", excess:"By relative return", haven:"By haven score"}
     : {time:"按时间", excess:"按相对表现", haven:"按避险强度"};
   document.querySelectorAll("[data-sort]").forEach(node => { if (sortLabels[node.dataset.sort]) node.textContent = sortLabels[node.dataset.sort]; });
+  document.querySelectorAll("[data-title-en]").forEach(node => {
+    if (!node.dataset.titleZh) node.dataset.titleZh = node.title || "";
+    node.title = en ? node.dataset.titleEn : node.dataset.titleZh;
+  });
+  document.querySelectorAll("[data-ph-en]").forEach(node => {
+    if (!node.dataset.phZh) node.dataset.phZh = node.placeholder || "";
+    node.placeholder = en ? node.dataset.phEn : node.dataset.phZh;
+  });
   document.getElementById("brand-title").textContent = en ? "EF Lab · Geopolitical Risk and Safe-Haven Lab" : "EF Lab · 地缘政治风险 × 避险资产实验室";
   document.getElementById("brand-sub").textContent = en ? "For study only. Not investment advice." : "Interactive Geopolitical Risk and Safe-Haven Lab · 仅供学习与研究，不构成投资建议";
   document.title = en ? "EF Lab | Geopolitical risk and safe havens" : "EF Lab | 地缘政治风险 × 避险资产";
   const foot = document.getElementById("site-foot");
   if (foot) foot.innerHTML = en
-    ? 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.4 · For study only. Not investment advice. Past prices are not a forecast. Data are not updated automatically; the published sample ends in 2026-09. Reproduce with <code>build.py</code>.'
-    : 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.4 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现请运行仓库里的 <code>build.py</code>。';
+    ? 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.5 · For study only. Not investment advice. Past prices are not a forecast. Data are not updated automatically; the published sample ends in 2026-09. Reproduce with <code>build.py</code>.'
+    : 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.5 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现请运行仓库里的 <code>build.py</code>。';
   if (LAB) {
     document.getElementById("lede").textContent = en
       ? "Monthly sample " + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ", " + LAB.meta.n_months + " months. Pick an event, then read the price path, the correlation change, and the site-defined haven score. Data change only when someone reruns build.py."
@@ -1073,7 +1115,7 @@ function applyI18n() {
   }
   const method = document.getElementById("method-body");
   if (method && !method.dataset.zh) method.dataset.zh = method.innerHTML;
-  if (method) method.innerHTML = en ? "<p>GPR is the monthly mean of Caldara and Iacoviello's daily GPRD, downloaded 13 Oct 2026. Gold is COMEX GC=F, Brent is ICE BZ=F, the dollar is ICE DXY, Hang Seng is Yahoo ^HSI, and CSI 300 is the Sina price index sh000300, not the official vendor archive.</p><p class='note'>The haven score is this site's descriptive index, not a standard measure from the literature. In the paper preset, E = 50 × (1 − average correlation of gold with CSI 300 and Hang Seng), G = 50 × (1 + correlation of gold with the change in GPR), D = 50 × (1 − correlation of gold with DXY), and the score is (E+G+D)/3. Fifty means those correlations are zero. The page also reports equal-weight and equity-weighted variants, and GPR act versus threat sub-indices when those series are loaded.</p><p class='note'>The impulse response is a recursive monthly VAR. AIC chooses the lag from 1 to 3; this sample uses lag 1. Cholesky order: GPR change, Brent, dollar, gold, CSI 300, Hang Seng. Bands are a 90 percent residual bootstrap with 200 draws. A custom order is a lag-1 point estimate without bands. This is not structural identification.</p><p class='note'>Prices are aligned on each market's own sessions. Missing days are not filled across markets. The default correlation window is 12 months because a 6-month window has about six points. Event dates are hand anchors. The 2 March 2026 Hormuz date is traced from a 26 March 2026 Reuters story and has not been audited cable by cable. Data are rebuilt by running build.py; they are not updated automatically. Sample ends 2026-09.</p>" : method.dataset.zh;
+  if (method) method.innerHTML = en ? "<p>GPR is the monthly mean of Caldara and Iacoviello's daily GPRD, downloaded 13 Oct 2026. Gold is COMEX GC=F, Brent is ICE BZ=F, the dollar is ICE DXY, Hang Seng is Yahoo ^HSI, and CSI 300 is the Sina price index sh000300, not the official vendor archive.</p><p class='note'>The haven score is this site's descriptive index, not a standard measure from the literature. In the paper preset, E = 50 × (1 − average correlation of gold with CSI 300 and Hang Seng), G = 50 × (1 + correlation of gold with the change in GPR), D = 50 × (1 − correlation of gold with DXY), and the score is (E+G+D)/3. Fifty means those correlations are zero. The page also reports equal-weight and equity-weighted variants, and GPR act versus threat sub-indices when those series are loaded.</p><p class='note'>The impulse response is a recursive monthly VAR. AIC chooses the lag from 1 to 3; this sample uses lag 1. Cholesky order: GPR change, Brent, dollar, gold, CSI 300, Hang Seng. Bands are a 90 percent residual bootstrap with 200 draws. A custom order is a lag-1 point estimate without bands. This is not structural identification.</p><p class='note'>Prices are aligned on each market's own sessions. Missing days are not filled across markets. The default correlation window is 12 months because a 6-month window has about six points. Event dates are hand anchors. The 2 March 2026 Hormuz date is traced from a 26 March 2026 Reuters story and has not been audited cable by cable. Data are rebuilt by running build.py; they are not updated automatically. The sample end is pinned at 2026-09.</p><p class='note'>The percentile compares an event's gold cumulative return with up to 120 ordinary months drawn from complete windows that do not contain a hand-dated event month. The seed is 20261013. A high percentile is not a causal effect. Most of the original dates are Middle East or oil episodes chosen after the fact. Brexit, the 2017 North Korean nuclear test, and the 2022 Pelosi visit are the non-Middle-East additions.</p><p class='note'>On 30 Jan 2026 the GC=F continuous future has a larger daily log drop than 15 Apr 2013. That series is not the LBMA fix. This build has no spot price, so a futures roll cannot be ruled out. Monthly returns are month-end to month-end and include that session in January 2026.</p>" : method.dataset.zh;
 }
 function render() {
   applyI18n();
@@ -1086,7 +1128,7 @@ function render() {
   const srcLine = src
     ? "<p class='note'>" + (state.lang === "en" ? "Source: " : "来源：") + "<a href='" + src.url + "'>" + src.label + "</a> " + (state.lang === "en" ? "The date is a hand anchor, not an estimated break, and it has not been checked cable by cable." : "日期是手工锚点，不是估计出来的断点。本页没有逐条核对原始电讯。") + "</p>"
     : "<p class='note'>" + (state.lang === "en" ? "The date is a hand anchor. This row does not yet have its own source link." : "日期是手工锚点。这条还没有单独核对过的来源链接。") + "</p>";
-  box.innerHTML = "<div>" + esc(said.text) + "</div><details><summary>" + (state.lang === "en" ? "Event note" : "事件背景") + "</summary><p class='note'>" + esc(event.note) + "</p>" + srcLine + "</details>";
+  box.innerHTML = "<div>" + esc(said.text) + "</div><details><summary>" + (state.lang === "en" ? "Event note" : "事件背景") + "</summary><p class='note'>" + esc(eventNote(event)) + "</p>" + srcLine + "</details>";
   const anchor = state.spec.anchor;
   const score = stats && stats.after ? stats.after.score : null;
   const tone = score == null ? "" : score >= 60 ? "color:#0072b2" : score < 45 ? "color:#d55e00" : "";
@@ -1143,7 +1185,10 @@ function render() {
     const path = indexedPath(LAB.daily[name], event.date, state.sessions);
     if (!path) return [NAMES[name], "—", "—"];
     const at0 = path.tau.indexOf(0);
-    return [NAMES[name], at0 >= 0 ? path.value[at0].toFixed(1) : "—", path.value.length ? path.value[path.value.length - 1].toFixed(1) : "—"];
+    const last = path.value.length ? path.value[path.value.length - 1] : null;
+    const atEvent = at0 >= 0 ? path.value[at0] : null;
+    const num = value => value == null || !isFinite(value) ? "—" : Number(value).toFixed(1);
+    return [NAMES[name], num(atEvent), num(last)];
   }));
   paintOverlayPicks();
   drawOverlay();
@@ -1244,6 +1289,16 @@ function render() {
   document.body.dataset.goldCum = stats && stats.cum[state.spec.anchor] != null ? stats.cum[state.spec.anchor].toFixed(4) : "";
   document.body.dataset.haven = score == null ? "" : score.toFixed(4);
   document.body.dataset.partial = stats ? String(stats.partial) : "";
+  fillVerdict();
+  fillGoldNote();
+  const card = document.getElementById("card-link");
+  if (card) {
+    const builtIn = LAB.events.some(item => item.id === event.id);
+    card.hidden = !builtIn;
+    if (builtIn) card.href = "cards/" + event.id + ".jpg";
+    card.textContent = state.lang === "en" ? "Vertical card" : "竖版卡片";
+  }
+  writeUrl();
   verifyCheck();
 }
 
@@ -1533,7 +1588,7 @@ function downloadEventCsv() {
   const anchor = state.spec.anchor;
   const other = ["csi", "brent", "hsi", "dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || "";
   const lines = [
-    ["note", "EF Lab V0.4。超额=锚资产累计对数收益减对照资产，单位是百分点。避险强度是本站自定的三项等权分数，50 为零相关，不是文献标准指数。事后窗口从事件月起算。描述性结果，不是因果识别。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。"],
+    ["note", "EF Lab V0.5。超额=锚资产累计对数收益减对照资产，单位是百分点。避险强度是本站自定的三项等权分数，50 为零相关，不是文献标准指数。事后窗口从事件月起算。描述性结果，不是因果识别。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。"],
     ["event", "date", "window_months", "n_after", "partial", "anchor", "anchor_cum", "other", "other_cum", "excess", "haven"],
   ];
   allEvents().forEach(event => {
@@ -1556,7 +1611,13 @@ function downloadEventCsv() {
 }
 function download(hostId, filename) {
   const svg = document.querySelector("#" + hostId + " svg");
-  if (!svg) return;
+  if (!svg) {
+    const status = document.getElementById("dl-status");
+    if (status) status.textContent = state.lang === "en"
+      ? "That chart is not drawn yet, so there is no SVG to download."
+      : "这张图还没画出来，没有可下载的 SVG。";
+    return;
+  }
   const clone = svg.cloneNode(true);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   const blob = new Blob([clone.outerHTML], {type:"image/svg+xml"});
@@ -1588,6 +1649,60 @@ function downloadGrid(hostId, filename, cols, cellW, cellH) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(link.href), 1000);
 }
+function fillVerdict() {
+  const host = document.getElementById("verdict");
+  if (!host) return;
+  const en = state.lang === "en";
+  const split = [], down = [], other = [], partial = [];
+  LAB.events.forEach(event => {
+    const stats = analyze(event.month, state.width);
+    const name = eventTitle(event);
+    if (!stats || stats.cum.gold == null) return;
+    if (stats.partial) { partial.push(name); return; }
+    if (stats.cum.gold > 0 && stats.cum.csi < 0) split.push(name);
+    else if (stats.cum.gold < 0) down.push(name);
+    else other.push(name);
+  });
+  const mideast = LAB.events.filter(event => event.region === "mideast").length;
+  const pack = LAB.placebo && LAB.placebo[String(state.width)];
+  const join = list => list.length ? list.join(en ? "; " : "、") : (en ? "none" : "没有");
+  if (en) {
+    host.textContent = "At the selected " + state.width + "-month window, gold rose while CSI 300 fell for: " + join(split) + ". Gold itself fell for: " + join(down) + ". The rest did not split: " + join(other) + ". Incomplete windows are left out of those lists" + (partial.length ? " (" + partial.join("; ") + ")" : "") + ". " + mideast + " of " + LAB.events.length + " built-in dates are tagged Middle East, and all of them were chosen after the prices were known. " + (pack ? "The gold percentile uses " + pack.n_draw + " ordinary months drawn from " + pack.n_pool + " complete windows that do not contain an event month, seed " + pack.seed + "." : "");
+  } else {
+    host.textContent = "按当前 " + state.width + " 个月窗口，黄金上涨且沪深300下跌的是：" + join(split) + "。黄金本身下跌的是：" + join(down) + "。其余没有反向分开：" + join(other) + "。不完整的窗口不放进这三句" + (partial.length ? "（" + partial.join("、") + "）" : "") + "。" + LAB.events.length + " 个内置日期里有 " + mideast + " 个标成中东，而且都是事后挑选的。分位见总表最后一列" + (pack ? "，用的是种子 " + pack.seed + " 抽出的 " + pack.n_draw + " 个普通月份，母体是 " + pack.n_pool + " 个不包含事件月的完整窗口。" : "。");
+  }
+}
+function fillGoldNote() {
+  const host = document.getElementById("gold-note");
+  const jumps = LAB.meta && LAB.meta.gold_jumps || [];
+  if (!host || !jumps.length) return;
+  const top = jumps[0];
+  const prior = jumps.find(item => item.date === "2013-04-15") || jumps[1];
+  const en = state.lang === "en";
+  host.textContent = en
+    ? "Data check: on " + top.date + " GC=F went from " + top.prev_close + " to " + top.close + ", a log return of " + top.log_return + "%. On " + (prior ? prior.date : "2013-04-15") + " the same file shows " + (prior ? prior.log_return : "—") + "%. No LBMA or spot series is in this build, so this is not confirmed as a cash crash. A futures roll can create a one-day jump, and the January 2026 monthly return includes that session. The next two closes were " + (top.next_closes || []).join(", ") + "."
+    : "核对： " + top.date + " 的 GC=F 从 " + top.prev_close + " 收到 " + top.close + "，对数收益 " + top.log_return + "%；同文件里 " + (prior ? prior.date : "2013-04-15") + " 是 " + (prior ? prior.log_return : "—") + "%。这次没有配上 LBMA 或现货，不能写成现货崩盘。连续合约换月可能造成单日跳变，2026 年 1 月的月度收益包含这一天。随后两个收盘是 " + (top.next_closes || []).join("、") + "。";
+}
+function readUrl() {
+  const q = new URLSearchParams(location.search);
+  const lang = q.get("lang");
+  if (lang === "en" || lang === "zh") state.lang = lang;
+  const width = Number(q.get("w"));
+  if ([6, 12, 24].includes(width)) state.width = width;
+  const sessions = Number(q.get("d"));
+  if ([20, 40, 60].includes(sessions)) state.sessions = sessions;
+  const id = q.get("e");
+  if (id && LAB.events.some(event => event.id === id)) state.eventId = id;
+}
+function writeUrl() {
+  const q = new URLSearchParams();
+  if (LAB.events.some(event => event.id === state.eventId)) q.set("e", state.eventId);
+  q.set("w", String(state.width));
+  q.set("d", String(state.sessions));
+  if (state.lang === "en") q.set("lang", "en");
+  const next = "?" + q.toString();
+  if (location.search !== next) history.replaceState(null, "", next);
+}
 function verifyCheck() {
   const path = indexedPath(LAB.daily.gold, LAB.meta.check.date, 60, "pre");
   const at = path.tau.indexOf(LAB.meta.check.tau);
@@ -1613,12 +1728,15 @@ function boot() {
     const savedLang = localStorage.getItem("gpr-haven-lang");
     if (savedLang === "en" || savedLang === "zh") state.lang = savedLang;
   } catch (err) {}
+  readUrl();
   Object.assign(NAMES, state.lang === "en" ? NAMES_EN : NAMES_ZH);
   state.spec = loadSpec();
+  state.spec.events = state.spec.events.filter(event => monthHasAfter(event.month) && sessionAfter(event.date));
   document.getElementById("lede").textContent = "月度样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "，共 " + LAB.meta.n_months + " 个月。先选一个经典事件，再看价格路径、相关差和避险强度。";
   const dateInput = document.getElementById("ev-date");
+  const prevMonth = LAB.months[LAB.months.length - 2] || LAB.meta.sample_start;
   dateInput.min = LAB.meta.sample_start + "-01";
-  dateInput.max = LAB.meta.sample_end + "-28";
+  dateInput.max = prevMonth + "-28";
   const select = document.getElementById("event");
   select.addEventListener("change", () => { state.eventId = select.value; render(); });
   document.getElementById("ev-add").addEventListener("click", () => {
@@ -1630,8 +1748,17 @@ function boot() {
     if (name.length < 2) { msg.textContent = "名称至少两个字。"; return; }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { msg.textContent = "日期要是 YYYY-MM-DD。"; return; }
     const month = date.slice(0, 7);
+    const en = state.lang === "en";
     if (!LAB.months.includes(month)) {
-      msg.textContent = "这个月不在样本里（" + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "）。";
+      msg.textContent = en
+        ? "That month is outside the sample (" + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ")."
+        : "这个月不在样本里（" + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "）。";
+      return;
+    }
+    if (!monthHasAfter(month) || !sessionAfter(date)) {
+      msg.textContent = en
+        ? "This date has no post-event month. The sample ends in " + LAB.meta.sample_end + ", so 2026-09-28 is rejected. Pick an earlier date."
+        : "这个日期后面没有事后月份。样本止于 " + LAB.meta.sample_end + "，所以 2026-09-28 这种末尾日期不会加入，否则图没有事后数据。请换早一些的日期。";
       return;
     }
     const id = "custom-" + Date.now();
@@ -1725,7 +1852,32 @@ function boot() {
     button.addEventListener("click", () => { state.sort = item.id; render(); });
     document.getElementById("compare-sort").appendChild(button);
   });
-  document.getElementById("dl-irf").addEventListener("click", () => downloadGrid("irf", "var_irf_gpr.svg", 3, 280, 160));
+  document.getElementById("dl-irf").addEventListener("click", () => {
+    if (!document.querySelector("#irf svg")) {
+      window.__heavy = true;
+      drawIrf();
+    }
+    if (!document.querySelector("#irf svg")) {
+      const status = document.getElementById("dl-status");
+      if (status) status.textContent = state.lang === "en"
+        ? "The impulse-response chart is not drawn yet, so there is no SVG to download. Scroll to that section and try again."
+        : "脉冲响应图还没画出来，没有可下载的 SVG。请先滚到这一节，再点一次。";
+      return;
+    }
+    const status = document.getElementById("dl-status");
+    if (status) status.textContent = "";
+    downloadGrid("irf", "var_irf_gpr.svg", 3, 280, 160);
+  });
+  document.getElementById("copy-link").addEventListener("click", () => {
+    writeUrl();
+    const status = document.getElementById("dl-status");
+    const text = location.href;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        if (status) status.textContent = state.lang === "en" ? "Link copied." : "链接已复制。";
+      }).catch(() => { if (status) status.textContent = text; });
+    } else if (status) status.textContent = text;
+  });
   document.getElementById("foot").textContent = "GPR：Caldara–Iacoviello 日度 GPRD 的月均值。黄金 GC=F、布伦特 BZ=F、美元指数 DX-Y.NYB、恒生 ^HSI 来自 Yahoo Finance。沪深300是新浪 sh000300。";
   document.getElementById("lang").addEventListener("click", () => {
     state.lang = state.lang === "en" ? "zh" : "en";
@@ -1768,19 +1920,19 @@ function boot() {
 let eventSig = "";
 function fillEvents() {
   const events = allEvents();
-  const sig = events.map(item => item.id).join("|");
+  const sig = state.lang + "|" + events.map(item => item.id).join("|");
   const select = document.getElementById("event");
   if (sig !== eventSig) {
     select.innerHTML = "";
-    ["海峡与石油","制裁","冲突升级","自定事件"].forEach(group => {
+    [["海峡与石油", "Strait and oil"], ["制裁", "Sanctions"], ["冲突升级", "Escalation"], ["其他", "Other"], ["自定事件", "Custom"]].forEach(([group, groupEn]) => {
       const members = events.filter(item => item.group === group);
       if (!members.length) return;
       const optgroup = document.createElement("optgroup");
-      optgroup.label = group;
+      optgroup.label = state.lang === "en" ? groupEn : group;
       members.forEach(event => {
         const option = document.createElement("option");
         option.value = event.id;
-        option.textContent = event.date.slice(0, 7) + "  " + event.name + (TAGS[event.id] ? " · " + TAGS[event.id] : "");
+        option.textContent = event.date.slice(0, 7) + "  " + eventTitle(event);
         optgroup.appendChild(option);
       });
       select.appendChild(optgroup);
@@ -1803,7 +1955,7 @@ function paintEventList() {
     text.type = "button";
     text.className = "ghost mini";
     text.style.marginLeft = "0";
-    text.textContent = event.date + "  " + event.name;
+    text.textContent = event.date + "  " + eventTitle(event);
     text.addEventListener("click", () => { state.eventId = event.id; render(); });
     const remove = document.createElement("button");
     remove.type = "button";

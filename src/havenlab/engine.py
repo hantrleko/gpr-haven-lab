@@ -45,6 +45,12 @@ VAR_MAXLAG = 3
 VAR_HORIZON = 12
 BOOT_REPS = 200
 BOOT_SEED = 42
+# Reproduction pin. A later calendar day must not extend the sample until this
+# period is edited on purpose.
+ASOF = pd.Timestamp("2026-10-13")
+SAMPLE_END = pd.Period("2026-09", freq="M")
+PLACEBO_SEED = 20261013
+PLACEBO_DRAW = 120
 
 PRICE_FILES = {
     "gold": RAW / "gold_gc.csv",
@@ -74,7 +80,7 @@ ASSETS = ["gold", "brent", "dxy", "csi", "hsi"]
 
 
 def completed_month(today: pd.Timestamp | None = None) -> pd.Period:
-    today = pd.Timestamp.today().normalize() if today is None else pd.Timestamp(today).normalize()
+    today = ASOF if today is None else pd.Timestamp(today).normalize()
     period = today.to_period("M")
     if today.day < int(today.days_in_month):
         return period - 1
@@ -162,7 +168,8 @@ def build_panel(today: pd.Timestamp | None = None) -> tuple[pd.DataFrame, dict[s
     if not bool(complete.any()):
         raise RuntimeError("No month has gold, Brent, dollar, CSI 300, Hang Seng, and GPR together.")
     start = panel.index[complete][0]
-    end = min(panel.index[complete][-1], completed_month(today))
+    clock_end = completed_month(today)
+    end = min(panel.index[complete][-1], clock_end, SAMPLE_END)
     if end < start:
         raise RuntimeError(f"Sample end {end} is before sample start {start}.")
     sample = panel.loc[start:end].copy()
@@ -454,6 +461,62 @@ def gpr_on_gold_clock(gold_path: dict, gpr: pd.Series) -> dict:
     return {"tau": gold_path["tau"], "value": levels, "date": gold_path["date"]}
 
 
+def gold_daily_jumps(series: pd.Series, n: int = 2) -> list[dict]:
+    """Largest daily log drops in the futures series, in percent."""
+    price = series[series > 0].sort_index()
+    change = 100.0 * np.log(price).diff()
+    worst = change.nsmallest(n)
+    rows = []
+    for stamp, value in worst.items():
+        loc = price.index.get_loc(stamp)
+        prev = float(price.iloc[loc - 1]) if loc else None
+        nxt = [float(price.iloc[loc + k]) for k in (1, 2) if loc + k < len(price)]
+        rows.append(
+            {
+                "date": pd.Timestamp(stamp).strftime("%Y-%m-%d"),
+                "log_return": round(float(value), 2),
+                "close": round(float(price.loc[stamp]), 1),
+                "prev_close": None if prev is None else round(prev, 1),
+                "next_closes": [round(item, 1) for item in nxt],
+            }
+        )
+    return rows
+
+
+def placebo_sample(panel: pd.DataFrame, events: list[dict], width: int, n_draw: int = PLACEBO_DRAW, seed: int = PLACEBO_SEED) -> dict:
+    """Gold cumulative log returns on ordinary months.
+
+    A start month is eligible when its after window is complete and does not
+    contain a hand-dated event month. The draw is seeded so the percentile
+    does not change between runs.
+    """
+    event_idx = set()
+    for event in events:
+        month = str(event.get("month") or pd.Timestamp(event["date"]).to_period("M"))
+        period = pd.Period(month, freq="M")
+        if period not in panel.index:
+            continue
+        event_idx.add(int(panel.index.get_loc(period)))
+    pool: list[float] = []
+    for i in range(0, len(panel) - width + 1):
+        if any(k in event_idx for k in range(i, i + width)):
+            continue
+        window = event_window(panel, str(panel.index[i]), width)
+        if window["partial"] or window["n_after"] < width or window["cum"]["gold"] is None:
+            continue
+        pool.append(float(window["cum"]["gold"]))
+    rng = np.random.default_rng(seed)
+    take = min(n_draw, len(pool))
+    picked = pool if take == len(pool) else [pool[int(j)] for j in rng.choice(len(pool), size=take, replace=False)]
+    picked = sorted(float(value) for value in picked)
+    return {
+        "seed": seed,
+        "n_pool": len(pool),
+        "n_draw": len(picked),
+        "gold": [round(value, 4) for value in picked],
+    }
+
+
 def _round_or_none(value, digits: int):
     if value is None or not np.isfinite(value):
         return None
@@ -493,6 +556,8 @@ def build_lab(today: pd.Timestamp | None = None) -> dict:
         "events": events,
         "web_daily": web_daily,
         "check": {"date": "2026-03-02", "tau": check_tau, "gold": round(check_path["value"][check_index], 4)},
+        "placebo": {str(width): placebo_sample(panel, events, width) for width in (6, 12, 24)},
+        "gold_jumps": gold_daily_jumps(daily["gold"], n=2),
     }
 
 
@@ -550,7 +615,13 @@ def web_payload(lab: dict) -> dict:
     var = lab["var"]
     events = []
     for event in lab["events"]:
-        events.append({key: event[key] for key in ("id", "date", "month", "group", "name", "note")})
+        events.append(
+            {
+                key: event[key]
+                for key in ("id", "date", "month", "group", "region", "name", "name_en", "note", "note_en")
+                if key in event
+            }
+        )
     return {
         "meta": {
             "sample_start": str(panel.index[0]),
@@ -563,8 +634,10 @@ def web_payload(lab: dict) -> dict:
             "var_lags": var["lags"],
             "var_t": var["t"],
             "var_boot": var["boot_kept"],
-            "built": pd.Timestamp.today().strftime("%Y-%m-%d"),
+            "built": ASOF.strftime("%Y-%m-%d"),
+            "sample_pin": str(SAMPLE_END),
             "check": lab["check"],
+            "gold_jumps": lab.get("gold_jumps") or [],
         },
         "months": [str(period) for period in panel.index],
         "ret": {name: _list_or_none(panel[f"ret_{name}"], 6) for name in ASSETS},
@@ -596,6 +669,7 @@ def web_payload(lab: dict) -> dict:
             "sample_end": var["sample_end"],
         },
         "events": events,
+        "placebo": lab.get("placebo") or {},
         "daily": lab["web_daily"],
     }
 
@@ -641,7 +715,8 @@ def write_tables(lab: dict, output: Path) -> pd.DataFrame:
     summary = summary_rows(panel)
     summary.to_csv(output / "event_window_summary.csv", index=False)
     provenance = {
-        "built": pd.Timestamp.today().strftime("%Y-%m-%d"),
+        "built": ASOF.strftime("%Y-%m-%d"),
+        "sample_pin": str(SAMPLE_END),
         "sample": [str(panel.index[0]), str(panel.index[-1])],
         "gpr": "https://www.matteoiacoviello.com/gpr_files/data_gpr_daily_recent.xls",
         "gold": "Yahoo Finance GC=F, COMEX front gold future",
@@ -650,8 +725,10 @@ def write_tables(lab: dict, output: Path) -> pd.DataFrame:
         "hsi": "Yahoo Finance ^HSI",
         "csi300": "Sina Finance sh000300 via akshare, price index",
         "returns": "100 * log month-end price change; not excess of the risk-free rate",
-        "haven": "equal weight of equity hedge, GPR co-movement, and dollar hedge; 50 is zero correlation",
+        "haven": "equal weight of equity hedge, GPR co-movement, and dollar hedge; 50 is zero correlation. Site-defined, not a literature index.",
+        "placebo": f"seed {PLACEBO_SEED}, draw {PLACEBO_DRAW} complete windows that do not contain a hand-dated event month",
         "var": "recursive, GPR difference ordered first; AIC lag in 1..3; cumulative orthogonal IRF",
+        "redistribution": "Yahoo and Sina raw files are not covered by the code license and are not redistributed from this repo.",
     }
     (output / "provenance.json").write_text(json.dumps(provenance, ensure_ascii=False, indent=2), encoding="utf-8")
     return summary

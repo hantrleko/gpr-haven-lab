@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>地缘政治风险 × 避险资产</title>
+<style>
+  :root {
+    --bg: #f3f0e8;
+    --paper: #fbfaf6;
+    --ink: #1c1915;
+    --muted: #5e584f;
+    --line: #ddd6c8;
+    --accent: #1f4b73;
+    --blue: #0072b2;
+    --orange: #d55e00;
+    --gold: #c48a00;
+    --green: #007a5a;
+    --pink: #a85b86;
+    --calm: #8a8478;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
+  h1 { font-size: 28px; line-height: 1.25; font-weight: 650; margin: 0 0 8px; }
+  h2 { font-size: 18px; font-weight: 650; margin: 0; }
+  p { margin: 0; }
+  .lede { color: var(--muted); max-width: 46rem; }
+  .controls, .panel, .readout, table { background: var(--paper); border: 1px solid var(--line); }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px 28px; padding: 14px 16px; margin: 18px 0; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  select, input[type="date"], input[type="text"] {
+    font: inherit; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--line); padding: 6px 8px; min-width: 0;
+  }
+  h3 { font-size: 15px; margin: 0 0 8px; }
+  .custom-grid { display: grid; grid-template-columns: 0.9fr 1.2fr; gap: 28px; }
+  .field { margin-bottom: 8px; }
+  .field input[type="text"] { width: 100%; }
+  .pick, .var-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 13px; }
+  .pick select, .var-row select { min-width: 88px; }
+  .ev-item { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .mini { padding: 2px 7px; }
+  .seg { display: flex; }
+  .seg button, .ghost {
+    font: inherit; background: var(--paper); color: var(--ink);
+    border: 1px solid var(--line); padding: 6px 10px; cursor: pointer;
+  }
+  .seg button + button { margin-left: -1px; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .readout { padding: 12px 14px; border-left: 3px solid var(--accent); margin-bottom: 14px; }
+  .readout.warn { border-left-color: var(--orange); }
+  .readout.bad { border-left-color: #9a3412; }
+  .note { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .stats { display: grid; grid-template-columns: 1.3fr repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+  .stat { background: var(--paper); border: 1px solid var(--line); padding: 10px 12px; }
+  .stat b { display: block; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .panel { padding: 14px 14px 10px; margin: 0 0 14px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .cap { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; }
+  svg { width: 100%; height: auto; display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  tr.click { cursor: pointer; }
+  tr.active td { background: #e7eef5; }
+  .ghost { margin-left: 8px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .irf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  footer { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  #tip {
+    position: fixed; z-index: 5; pointer-events: none; display: none;
+    background: var(--ink); color: #fff; font-size: 12px; padding: 4px 7px;
+  }
+  @media (max-width: 800px) {
+    .stats, .split, .irf-grid, .custom-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>地缘政治风险 × 避险资产</h1>
+  <p class="lede" id="lede"></p>
+  <div class="controls">
+    <div>
+      <label for="event">事件</label>
+      <select id="event"></select>
+    </div>
+    <div>
+      <label>价格窗口</label>
+      <div class="seg" id="seg-sessions"></div>
+    </div>
+    <div>
+      <label>月度相关窗口</label>
+      <div class="seg" id="seg-width"></div>
+    </div>
+  </div>
+  <section class="panel" id="custom-panel">
+    <div class="panel-head">
+      <h2>自定</h2>
+      <button class="ghost" id="reset-spec" type="button">恢复论文设定</button>
+    </div>
+    <div class="custom-grid">
+      <div>
+        <h3>自定事件</h3>
+        <div class="field"><label for="ev-name">名称</label><input id="ev-name" type="text" maxlength="40" placeholder="例如：红海航运受阻" /></div>
+        <div class="field"><label for="ev-date">日期</label><input id="ev-date" type="date" /></div>
+        <div class="field"><label for="ev-note">备注</label><input id="ev-note" type="text" maxlength="160" placeholder="可选，写清这个日期锚的是什么" /></div>
+        <button class="ghost" id="ev-add" type="button" style="margin-left:0">加入并查看</button>
+        <p class="note" id="ev-msg"></p>
+        <div id="ev-list"></div>
+      </div>
+      <div>
+        <h3>自定变量</h3>
+        <div class="field">
+          <label for="anchor">锚资产</label>
+          <select id="anchor"></select>
+        </div>
+        <p class="note">价格路径里画哪些序列。锚资产始终保留。</p>
+        <div id="path-picks"></div>
+        <p class="note" style="margin-top:10px">和锚资产做相关。对冲：负相关加分。同向：正相关加分。对照：只画相关，不进强度。</p>
+        <div id="score-picks"></div>
+        <p class="note" style="margin-top:10px">脉冲响应的变量和顺序。第一位是被冲击的变量。自定顺序只给点估计。</p>
+        <div id="var-order"></div>
+      </div>
+    </div>
+  </section>
+  <div class="readout" id="readout"></div>
+  <div class="stats" id="stats"></div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>事件前后价格路径</h2>
+      <button class="ghost" type="button" id="dl-path">下载 SVG</button>
+    </div>
+    <div id="path"></div>
+    <div class="legend" id="path-legend"></div>
+    <p class="cap" id="path-cap"></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>同一窗口里的 GPR 日度水平</h2>
+      <button class="ghost" type="button" id="dl-gpr">下载 SVG</button>
+    </div>
+    <div id="gpr"></div>
+    <p class="cap">GPRD 按黄金交易日取值。0 是事件日或其后第一个交易日。纵轴是指数点，不是涨跌幅。</p>
+  </section>
+
+  <div class="split">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>事件前后相关系数</h2>
+        <button class="ghost" type="button" id="dl-corr">下载 SVG</button>
+      </div>
+      <div id="corr"></div>
+      <p class="cap" id="corr-cap"></p>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2>这个窗口的避险强度</h2></div>
+      <div id="parts"></div>
+      <p class="cap">三项等权。50 对应相关系数为 0。短于 12 个月的相关很不稳定，只适合对照，不适合单独写进正文。</p>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>36 个月滚动避险强度</h2>
+      <button class="ghost" type="button" id="dl-haven">下载 SVG</button>
+    </div>
+    <div id="haven"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:#0072b2"></i>高压且强度 ≥ 60</span>
+      <span><i class="swatch" style="background:#d55e00"></i>高压且强度 &lt; 45</span>
+      <span><i class="swatch" style="background:#e69f00"></i>高压、强度居中</span>
+      <span><i class="swatch" style="background:#8a8478"></i>GPR 未处在自身过去 60 个月的上四分位</span>
+    </div>
+    <p class="cap">竖线是当前事件月。高压用 GPR 自身的滚动分位，不用全样本分位，因此没有用到未来信息。</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="heat-title">黄金滚动相关，按季度</h2>
+      <button class="ghost" type="button" id="dl-heat">下载 SVG</button>
+    </div>
+    <div id="heat" style="overflow-x:auto"></div>
+    <p class="cap">每一格是止于该季末的 36 个月相关系数。蓝色偏负，橙色偏正。当前事件所在季度用黑框标出。</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="irf-title">GPR 冲击的累计脉冲响应</h2>
+      <button class="ghost" type="button" id="dl-irf">下载 SVG</button>
+    </div>
+    <div class="irf-grid" id="irf"></div>
+    <p class="cap" id="irf-cap"></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>全部事件，同一套窗口</h2></div>
+    <div style="overflow-x:auto"><table id="board"></table></div>
+    <p class="cap">点击一行就切换事件。黄金−沪深300 为正，表示这段窗口里黄金的累计对数收益更高。</p>
+  </section>
+  <footer id="foot"></footer>
+</main>
+<div id="tip"></div>
+<script>
+const LAB = __LAB_JSON__;
+const COLORS = {gold:"#c48a00", brent:"#d55e00", dxy:"#0072b2", csi:"#007a5a", hsi:"#a85b86", dgpr:"#1c1915"};
+const NAMES = {gold:"黄金", brent:"布伦特", dxy:"美元指数", csi:"沪深300", hsi:"恒生", dgpr:"GPR变动"};
+const PRICE_IDS = ["gold","brent","dxy","csi","hsi"];
+const SCORE_IDS = ["brent","dxy","csi","hsi","dgpr"];
+const VAR_IDS = ["dgpr","brent","dxy","gold","csi","hsi"];
+const STORE_KEY = "gpr-haven-custom-v1";
+const state = {eventId:"hormuz_2026", sessions:40, width:6, spec:null};
+
+function defaultSpec() {
+  return {
+    events: [],
+    anchor: "gold",
+    path: PRICE_IDS.slice(),
+    score: [
+      {id:"brent", role:"watch"},
+      {id:"dxy", role:"hedge"},
+      {id:"csi", role:"hedge"},
+      {id:"hsi", role:"hedge"},
+      {id:"dgpr", role:"comove"},
+    ],
+    varOn: VAR_IDS.slice(),
+  };
+}
+function sanitizeSpec(raw) {
+  const base = defaultSpec();
+  if (!raw || typeof raw !== "object") return base;
+  if (PRICE_IDS.includes(raw.anchor)) base.anchor = raw.anchor;
+  if (Array.isArray(raw.path)) base.path = PRICE_IDS.filter(id => raw.path.includes(id));
+  if (!base.path.includes(base.anchor)) base.path.unshift(base.anchor);
+  if (Array.isArray(raw.score)) {
+    base.score = SCORE_IDS.map(id => {
+      const found = raw.score.find(item => item && item.id === id);
+      const role = found && ["off","watch","hedge","comove"].includes(found.role) ? found.role : "off";
+      return {id, role: id === base.anchor ? "off" : role};
+    });
+  }
+  if (Array.isArray(raw.varOn)) {
+    const kept = raw.varOn.filter(id => VAR_IDS.includes(id));
+    base.varOn = kept.length >= 2 ? kept : VAR_IDS.slice();
+  }
+  if (Array.isArray(raw.events)) {
+    base.events = raw.events.filter(item => item && item.id && item.date && item.name && /^\d{4}-\d{2}-\d{2}$/.test(item.date)).map(item => ({
+      id: String(item.id),
+      name: String(item.name).slice(0, 40),
+      date: item.date,
+      month: item.date.slice(0, 7),
+      group: "自定事件",
+      note: String(item.note || "页面上自定的事件。").slice(0, 160),
+    }));
+  }
+  return base;
+}
+function loadSpec() {
+  try { return sanitizeSpec(JSON.parse(localStorage.getItem(STORE_KEY))); }
+  catch (err) { return defaultSpec(); }
+}
+function saveSpec() {
+  const spec = state.spec;
+  localStorage.setItem(STORE_KEY, JSON.stringify({
+    events: spec.events, anchor: spec.anchor, path: spec.path, score: spec.score, varOn: spec.varOn,
+  }));
+}
+function allEvents() { return LAB.events.concat(state.spec.events); }
+function shownPairs() { return state.spec.score.filter(item => item.role !== "off" && item.id !== state.spec.anchor); }
+function isPresetScore() {
+  if (state.spec.anchor !== "gold") return false;
+  const want = {brent:"watch", dxy:"hedge", csi:"hedge", hsi:"hedge", dgpr:"comove"};
+  return state.spec.score.length === 5 && state.spec.score.every(item => want[item.id] === item.role);
+}
+function isPresetVar() {
+  return state.spec.varOn.join(",") === VAR_IDS.join(",");
+}
+function seriesOf(block, id) { return id === "dgpr" ? block.dgpr : block[id]; }
+
+function corr(xs, ys, minN=4) {
+  const buf = [];
+  for (let i = 0; i < xs.length; i++) {
+    const x = xs[i], y = ys[i];
+    if (x == null || y == null || !isFinite(x) || !isFinite(y)) continue;
+    buf.push([x, y]);
+  }
+  const n = buf.length;
+  if (n < minN) return null;
+  let mx = 0, my = 0;
+  for (const [x, y] of buf) { mx += x; my += y; }
+  mx /= n; my /= n;
+  let num = 0, dx = 0, dy = 0;
+  for (const [x, y] of buf) {
+    const a = x - mx, b = y - my;
+    num += a * b; dx += a * a; dy += b * b;
+  }
+  if (dx <= 1e-12 || dy <= 1e-12) return null;
+  return num / Math.sqrt(dx * dy);
+}
+function havenOfLegacy(block) {
+  const cCsi = corr(block.gold, block.csi);
+  const cHsi = corr(block.gold, block.hsi);
+  const cGpr = corr(block.gold, block.dgpr);
+  const cDxy = corr(block.gold, block.dxy);
+  const cBrent = corr(block.gold, block.brent);
+  if ([cCsi, cHsi, cGpr, cDxy].some(v => v == null)) return null;
+  const equity = 50 * (1 - (cCsi + cHsi) / 2);
+  const gpr = 50 * (1 + cGpr);
+  const dollar = 50 * (1 - cDxy);
+  return {score:(equity+gpr+dollar)/3, equity, gpr, dollar, cCsi, cHsi, cGpr, cDxy, cBrent, parts:null};
+}
+function havenOf(block, minN=4) {
+  if (isPresetScore() && minN === 4) return havenOfLegacy(block);
+  const anchor = seriesOf(block, state.spec.anchor);
+  const legs = shownPairs().filter(item => item.role === "hedge" || item.role === "comove");
+  if (!legs.length) return null;
+  const corrs = {};
+  const parts = [];
+  for (const leg of legs) {
+    const value = corr(anchor, seriesOf(block, leg.id), minN);
+    if (value == null) return null;
+    corrs[leg.id] = value;
+    parts.push({id:leg.id, role:leg.role, corr:value, value: leg.role === "hedge" ? 50 * (1 - value) : 50 * (1 + value)});
+  }
+  shownPairs().forEach(item => {
+    if (corrs[item.id] == null) {
+      const value = corr(anchor, seriesOf(block, item.id), minN);
+      if (value != null) corrs[item.id] = value;
+    }
+  });
+  return {
+    score: parts.reduce((sum, item) => sum + item.value, 0) / parts.length,
+    parts,
+    cCsi: corrs.csi ?? null,
+    cHsi: corrs.hsi ?? null,
+    cGpr: corrs.dgpr ?? null,
+    cDxy: corrs.dxy ?? null,
+    cBrent: corrs.brent ?? null,
+  };
+}
+function sliceBlock(a, b) {
+  return {
+    gold: LAB.ret.gold.slice(a, b),
+    brent: LAB.ret.brent.slice(a, b),
+    dxy: LAB.ret.dxy.slice(a, b),
+    csi: LAB.ret.csi.slice(a, b),
+    hsi: LAB.ret.hsi.slice(a, b),
+    dgpr: LAB.dgpr.slice(a, b),
+    gpr: LAB.gpr.slice(a, b),
+  };
+}
+function finiteSum(arr) {
+  let s = 0, n = 0;
+  for (const v of arr) {
+    if (v == null || !isFinite(v)) continue;
+    s += v; n++;
+  }
+  return {sum: n ? s : null, n};
+}
+function mean(arr) {
+  const {sum, n} = finiteSum(arr);
+  return n ? sum / n : null;
+}
+function analyze(month, width) {
+  const idx = LAB.months.indexOf(month);
+  if (idx < 0) return null;
+  const n = LAB.months.length;
+  const b0 = Math.max(0, idx - width);
+  const a1 = Math.min(n, idx + width);
+  const before = sliceBlock(b0, idx);
+  const after = sliceBlock(idx, a1);
+  const anchorId = state.spec.anchor;
+  const anchorCount = finiteSum(after[anchorId]).n;
+  const partial = b0 !== idx - width || a1 !== idx + width || anchorCount < width;
+  return {
+    partial, nBefore: idx - b0, nAfter: anchorCount, width,
+    cum: {
+      gold: finiteSum(after.gold).sum,
+      brent: finiteSum(after.brent).sum,
+      dxy: finiteSum(after.dxy).sum,
+      csi: finiteSum(after.csi).sum,
+      hsi: finiteSum(after.hsi).sum,
+    },
+    before: havenOf(before),
+    after: havenOf(after),
+    gprBefore: mean(before.gpr),
+    gprAfter: mean(after.gpr),
+  };
+}
+function indexedPath(pack, eventDate, sessions) {
+  const {dates, close} = pack;
+  let i0 = 0;
+  while (i0 < dates.length && dates[i0] < eventDate) i0++;
+  if (i0 <= 0) return null;
+  const base = close[i0 - 1];
+  if (!base) return null;
+  const tau = [], value = [], date = [];
+  for (let i = Math.max(0, i0 - sessions); i < i0; i++) {
+    tau.push(i - i0); value.push(100 * close[i] / base); date.push(dates[i]);
+  }
+  for (let i = i0; i < Math.min(dates.length, i0 + sessions); i++) {
+    tau.push(i - i0); value.push(100 * close[i] / base); date.push(dates[i]);
+  }
+  return {tau, value, date};
+}
+function fmt(v, d=1) {
+  if (v == null || !isFinite(v)) return "—";
+  const text = v.toFixed(d);
+  return v > 0 ? "+" + text : text;
+}
+function activeEvent() {
+  return allEvents().find(item => item.id === state.eventId) || LAB.events[0];
+}
+function sentence(event, stats) {
+  if (!stats) return {tone:"warn", text:"这个月不在完整月度样本里。样本止于 " + LAB.meta.sample_end + "。"};
+  const anchor = state.spec.anchor;
+  const names = state.spec.path.map(id => NAMES[id] + " " + fmt(stats.cum[id]) + "%").join("，");
+  const pair = shownPairs().find(item => item.id === "csi") || shownPairs()[0];
+  const corrBit = pair && stats.after && stats.before && stats.before["c" + pairKey(pair.id)] != null && stats.after["c" + pairKey(pair.id)] != null
+    ? NAMES[anchor] + "与" + NAMES[pair.id] + "的相关由 " + stats.before["c" + pairKey(pair.id)].toFixed(2) + " 变为 " + stats.after["c" + pairKey(pair.id)].toFixed(2) + "。"
+    : (stats.after ? "" : "这个窗口的月份太少，相关没有计算。");
+  const g = stats.cum[anchor];
+  const c = stats.cum.csi;
+  const b = stats.cum.brent;
+  let tone = "", claim = "这组价格路径没有呈现单一方向。";
+  if (anchor === "gold" && g > 0 && c < 0 && state.spec.path.includes("csi")) { claim = "黄金上涨而沪深300下跌，价格路径与避险分流一致。"; }
+  else if (anchor === "gold" && b > 0 && g < 0 && state.spec.path.includes("brent")) { tone = "warn"; claim = "布伦特上涨而黄金下跌，这段窗口里黄金没有表现出典型的避险上涨。"; }
+  else if (anchor === "gold" && g < 0 && c < 0 && state.spec.path.includes("csi")) { tone = "bad"; claim = "黄金与沪深300同时下跌，更像流动性和实际利率一起抽紧，而不是黄金单独承接避险买盘。"; }
+  else if (anchor === "gold" && g > 0 && c > 0 && state.spec.path.includes("csi")) { claim = "黄金与沪深300同时上涨，避险资产和风险资产没有反向分开。"; }
+  else claim = "上面是锚资产和已选序列在这个窗口里的累计对数收益。";
+  const cut = stats.partial ? "事后窗口不完整，累计收益只覆盖可得月份。" : "";
+  return {tone, text: event.name + "（" + event.date + "）之后 " + stats.nAfter + " 个月：" + names + "。" + corrBit + claim + cut + " 这是窗口内的描述，不是因果识别。"};
+}
+function pairKey(id) {
+  return {brent:"Brent", dxy:"Dxy", csi:"Csi", hsi:"Hsi", dgpr:"Gpr"}[id];
+}
+
+function svgNode(name, attrs) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+  return node;
+}
+function drawChart(host, spec) {
+  host.innerHTML = "";
+  const width = spec.width || 860, height = spec.height || 300;
+  const m = spec.margin || {l:54, r:12, t:12, b:36};
+  const svg = svgNode("svg", {viewBox:`0 0 ${width} ${height}`, role:"img"});
+  svg.appendChild(svgNode("title", {})).textContent = spec.title || "";
+  const iw = width - m.l - m.r, ih = height - m.t - m.b;
+  const pts = [];
+  spec.series.forEach(series => {
+    series.x.forEach((x, i) => {
+      const y = series.y[i];
+      if (x == null || y == null || !isFinite(x) || !isFinite(y)) return;
+      pts.push({x, y});
+    });
+  });
+  if (!pts.length) { host.appendChild(svg); return; }
+  let x0 = Math.min(...pts.map(p => p.x)), x1 = Math.max(...pts.map(p => p.x));
+  let y0 = Math.min(...pts.map(p => p.y)), y1 = Math.max(...pts.map(p => p.y));
+  if (spec.includeZero) { y0 = Math.min(y0, 0); y1 = Math.max(y1, 0); }
+  if (spec.ref != null) { y0 = Math.min(y0, spec.ref); y1 = Math.max(y1, spec.ref); }
+  const pad = (y1 - y0) * 0.08 || 1;
+  y0 -= pad; y1 += pad;
+  if (x0 === x1) { x0 -= 1; x1 += 1; }
+  const X = x => m.l + (x - x0) / (x1 - x0) * iw;
+  const Y = y => m.t + (y1 - y) / (y1 - y0) * ih;
+  const ticks = 4;
+  for (let i = 0; i <= ticks; i++) {
+    const y = y0 + (y1 - y0) * i / ticks;
+    svg.appendChild(svgNode("line", {x1:m.l, x2:width-m.r, y1:Y(y), y2:Y(y), stroke:"#eceae4"}));
+    const label = svgNode("text", {x:m.l-6, y:Y(y)+4, "text-anchor":"end", fill:"#5e584f", "font-size":11});
+    label.textContent = spec.yFormat ? spec.yFormat(y) : y.toFixed(spec.yDigits == null ? 0 : spec.yDigits);
+    svg.appendChild(label);
+  }
+  if (spec.ref != null) svg.appendChild(svgNode("line", {x1:m.l, x2:width-m.r, y1:Y(spec.ref), y2:Y(spec.ref), stroke:"#c8c2b6", "stroke-dasharray":"3 3"}));
+  if (spec.mark != null && spec.mark >= x0 && spec.mark <= x1) {
+    svg.appendChild(svgNode("line", {x1:X(spec.mark), x2:X(spec.mark), y1:m.t, y2:height-m.b, stroke:"#8a8478", "stroke-dasharray":"3 3"}));
+  }
+  spec.series.forEach(series => {
+    let d = "";
+    series.x.forEach((x, i) => {
+      const y = series.y[i];
+      if (x == null || y == null || !isFinite(x) || !isFinite(y)) { d += " M "; return; }
+      d += (d.endsWith("M ") || d === "" ? "M " : "L ") + X(x).toFixed(2) + " " + Y(y).toFixed(2) + " ";
+    });
+    svg.appendChild(svgNode("path", {d, fill:"none", stroke:series.color, "stroke-width":series.width || 1.6}));
+    if (series.bandLo) {
+      let band = "";
+      const upper = [], lower = [];
+      series.x.forEach((x, i) => {
+        if ([series.bandLo[i], series.bandHi[i]].every(v => v != null && isFinite(v))) {
+          upper.push([X(x), Y(series.bandHi[i])]);
+          lower.push([X(x), Y(series.bandLo[i])]);
+        }
+      });
+      band = upper.map((p,i) => (i ? "L":"M") + p[0].toFixed(2) + " " + p[1].toFixed(2)).join(" ");
+      for (let i = lower.length - 1; i >= 0; i--) band += " L " + lower[i][0].toFixed(2) + " " + lower[i][1].toFixed(2);
+      band += " Z";
+      const shade = svgNode("path", {d:band, fill:series.color, opacity:"0.18", stroke:"none"});
+      svg.insertBefore(shade, svg.querySelector("path"));
+    }
+  });
+  const xTicks = spec.xTicks || [x0, (x0+x1)/2, x1];
+  xTicks.forEach(x => {
+    if (x < x0 || x > x1) return;
+    const label = svgNode("text", {x:X(x), y:height-14, "text-anchor":"middle", fill:"#5e584f", "font-size":11});
+    label.textContent = spec.xFormat ? spec.xFormat(x) : String(Math.round(x));
+    svg.appendChild(label);
+  });
+  host.appendChild(svg);
+  const hit = [];
+  spec.series.forEach(series => {
+    series.x.forEach((x, i) => {
+      const y = series.y[i];
+      if (x == null || y == null || !isFinite(y)) return;
+      hit.push({sx:X(x), label: series.name + "  " + (spec.xFormat ? spec.xFormat(x) : x) + "  " + (spec.yFormat ? spec.yFormat(y) : y.toFixed(2))});
+    });
+  });
+  svg.addEventListener("mousemove", event => {
+    const rect = svg.getBoundingClientRect();
+    const sx = (event.clientX - rect.left) * width / rect.width;
+    let best = null, dist = 1e9;
+    hit.forEach(point => { const d = Math.abs(point.sx - sx); if (d < dist) { dist = d; best = point; } });
+    const tip = document.getElementById("tip");
+    if (!best || dist > 24) { tip.style.display = "none"; return; }
+    tip.style.display = "block";
+    tip.style.left = (event.clientX + 12) + "px";
+    tip.style.top = (event.clientY + 12) + "px";
+    tip.textContent = best.label;
+  });
+  svg.addEventListener("mouseleave", () => { document.getElementById("tip").style.display = "none"; });
+}
+
+function drawHeat(event, heat) {
+  const host = document.getElementById("heat");
+  host.innerHTML = "";
+  const cell = 16, labelW = 118, head = 28;
+  const width = labelW + heat.labels.length * cell + 8;
+  const height = head + heat.pairs.length * cell + 8;
+  const svg = svgNode("svg", {viewBox:`0 0 ${width} ${height}`, width: width, height: height});
+  const quarter = event.month ? event.month.slice(0,4) + "Q" + (Math.floor((Number(event.month.slice(5,7)) - 1) / 3) + 1) : "";
+  heat.labels.forEach((label, i) => {
+    if (!label.endsWith("Q1")) return;
+    const text = svgNode("text", {x: labelW + i * cell, y: 16, fill:"#5e584f", "font-size":11});
+    text.textContent = label.slice(0,4);
+    svg.appendChild(text);
+  });
+  heat.pairs.forEach((pair, r) => {
+    const text = svgNode("text", {x:0, y: head + r * cell + 12, fill:"#1c1915", "font-size":12});
+    text.textContent = pair.name;
+    svg.appendChild(text);
+    pair.values.forEach((value, c) => {
+      const rect = svgNode("rect", {
+        x: labelW + c * cell, y: head + r * cell, width: cell - 1, height: cell - 1,
+        fill: value == null ? "#f3f0e8" : (value < 0 ? "#0072b2" : "#d55e00"),
+        opacity: value == null ? 1 : Math.max(0.08, Math.abs(value)),
+      });
+      const title = svgNode("title", {});
+      title.textContent = pair.name + " " + heat.labels[c] + " " + (value == null ? "无" : value.toFixed(2));
+      rect.appendChild(title);
+      svg.appendChild(rect);
+      if (heat.labels[c] === quarter) {
+        svg.appendChild(svgNode("rect", {
+          x: labelW + c * cell, y: head + r * cell, width: cell - 1, height: cell - 1,
+          fill:"none", stroke:"#1c1915", "stroke-width":1.2,
+        }));
+      }
+    });
+  });
+  host.appendChild(svg);
+}
+
+function liveHeat() {
+  const ids = shownPairs().map(item => item.id);
+  const presetIds = ["brent","dxy","csi","hsi","dgpr"];
+  if (state.spec.anchor === "gold" && ids.length === presetIds.length && presetIds.every(id => ids.includes(id))) return LAB.heatmap;
+  const anchor = state.spec.anchor;
+  const labels = [];
+  const pairs = ids.map(id => ({id, name: NAMES[anchor] + "–" + NAMES[id], values: []}));
+  LAB.months.forEach((month, i) => {
+    const m = Number(month.slice(5, 7));
+    if (![3, 6, 9, 12].includes(m) || i < 35) return;
+    const sample = sliceBlock(i - 35, i + 1);
+    labels.push(month.slice(0, 4) + "Q" + (m / 3));
+    pairs.forEach(pair => {
+      const value = corr(seriesOf(sample, anchor), seriesOf(sample, pair.id), 24);
+      pair.values.push(value == null ? null : Math.round(value * 1000) / 1000);
+    });
+  });
+  return {labels, pairs};
+}
+function rollingHaven() {
+  if (isPresetScore()) return LAB.haven.score;
+  return LAB.months.map((month, i) => {
+    if (i < 35) return null;
+    const stats = havenOf(sliceBlock(i - 35, i + 1), 24);
+    return stats ? Math.round(stats.score * 100) / 100 : null;
+  });
+}
+function drawBoard(width) {
+  const table = document.getElementById("board");
+  const anchor = state.spec.anchor;
+  const other = ["csi","brent","hsi","dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || state.spec.path.find(id => id !== anchor);
+  const pair = shownPairs().find(item => item.id === "csi") || shownPairs()[0];
+  const headers = ["事件", "事后" + NAMES[anchor], other ? NAMES[other] : "—", other ? NAMES[anchor] + "−" + NAMES[other] : "差额", pair ? "相关变化" : "相关", "避险强度", "月数"];
+  table.innerHTML = "<thead><tr>" + headers.map(h => "<th>" + h + "</th>").join("") + "</tr></thead>";
+  const body = document.createElement("tbody");
+  allEvents().forEach(event => {
+    const stats = analyze(event.month, width);
+    const tr = document.createElement("tr");
+    tr.className = "click" + (event.id === state.eventId ? " active" : "");
+    const key = pair ? "c" + pairKey(pair.id) : "";
+    const delta = key && stats && stats.before && stats.after && stats.before[key] != null && stats.after[key] != null ? stats.after[key] - stats.before[key] : null;
+    const excess = other && stats && stats.cum[anchor] != null && stats.cum[other] != null ? stats.cum[anchor] - stats.cum[other] : null;
+    const cells = [
+      event.name,
+      fmt(stats && stats.cum[anchor]),
+      other ? fmt(stats && stats.cum[other]) : "—",
+      fmt(excess),
+      delta == null ? "—" : fmt(delta, 2),
+      stats && stats.after ? stats.after.score.toFixed(0) : "—",
+      stats ? String(stats.nAfter) + (stats.partial ? "*" : "") : "—",
+    ];
+    cells.forEach(text => { const td = document.createElement("td"); td.textContent = text; tr.appendChild(td); });
+    tr.addEventListener("click", () => { state.eventId = event.id; render(); });
+    body.appendChild(tr);
+  });
+  table.appendChild(body);
+}
+
+function render() {
+  const event = activeEvent();
+  const stats = analyze(event.month, state.width);
+  const box = document.getElementById("readout");
+  const said = sentence(event, stats);
+  box.className = "readout " + (said.tone || "");
+  box.innerHTML = "<div>" + said.text + "</div><p class='note'>" + event.note + "</p>";
+  const anchor = state.spec.anchor;
+  const score = stats && stats.after ? stats.after.score : null;
+  const tone = score == null ? "" : score >= 60 ? "color:#0072b2" : score < 45 ? "color:#d55e00" : "";
+  const preferred = ["brent","csi","hsi","dxy"].filter(id => id !== anchor && state.spec.path.includes(id));
+  const extras = preferred.slice(0, 2);
+  const statItems = [
+    ["避险强度（事后）", score == null ? "—" : score.toFixed(0), tone],
+    [NAMES[anchor] + "累计", fmt(stats && stats.cum[anchor]) + "%", ""],
+  ];
+  extras.forEach(id => statItems.push([NAMES[id] + "累计", fmt(stats && stats.cum[id]) + "%", ""]));
+  statItems.push(["事后 GPR 月均", stats && stats.gprAfter != null ? Math.round(stats.gprAfter) + "，事前 " + Math.round(stats.gprBefore) : "—", ""]);
+  document.getElementById("stats").innerHTML = statItems.map(([label, value, style]) => "<div class='stat'><b style='" + style + "'>" + value + "</b><span>" + label + "</span></div>").join("");
+
+  const pathIds = state.spec.path.includes(anchor) ? state.spec.path : [anchor].concat(state.spec.path);
+  const anchorPath = indexedPath(LAB.daily[anchor], event.date, state.sessions);
+  drawChart(document.getElementById("path"), {
+    title: event.name + " 前后价格路径",
+    height: 320, ref: 100, mark: 0,
+    yFormat: v => v.toFixed(0),
+    xTicks: [-state.sessions, -20, 0, 20, state.sessions - 1],
+    series: pathIds.map(name => {
+      const path = indexedPath(LAB.daily[name], event.date, state.sessions);
+      return path ? {name: NAMES[name], color: COLORS[name], x: path.tau, y: path.value} : {name: NAMES[name], color: COLORS[name], x:[], y:[]};
+    }),
+  });
+  document.getElementById("path-legend").innerHTML = pathIds.map(name => "<span><i class='swatch' style='background:" + COLORS[name] + "'></i>" + NAMES[name] + "</span>").join("");
+  document.getElementById("path-cap").textContent = "t = -1 的收盘价设为 100。0 是事件日或其后第一个交易日。当前锚资产是" + NAMES[anchor] + "。各市场用自己的交易日计数。";
+
+  const gprClock = anchorPath || indexedPath(LAB.daily.gold, event.date, state.sessions);
+  const gprMap = new Map(LAB.daily.gpr.dates.map((date, i) => [date, LAB.daily.gpr.close[i]]));
+  drawChart(document.getElementById("gpr"), {
+    title: "GPR 日度水平",
+    height: 180, mark: 0, yDigits: 0,
+    xTicks: [-state.sessions, 0, state.sessions - 1],
+    series: gprClock ? [{name:"GPR", color:"#1c1915", x: gprClock.tau, y: gprClock.date.map(date => gprMap.get(date) ?? null)}] : [],
+  });
+
+  drawCorrBars(stats);
+  document.getElementById("corr-cap").textContent = stats
+    ? "事前 " + stats.nBefore + " 个月，不含事件月；事后 " + stats.nAfter + " 个月，含事件月。" + (stats.partial ? " 窗口被样本端点截断。" : "")
+    : "";
+
+  const after = stats && stats.after;
+  const partHost = document.getElementById("parts");
+  if (!after) partHost.innerHTML = "<p class='note'>月份不足，或没有把任何变量设成对冲或同向。</p>";
+  else if (after.parts) {
+    partHost.innerHTML = after.parts.map(part => "<p style='margin:8px 0'><b>" + NAMES[part.id] + " " + part.value.toFixed(0) + "</b><br><span class='note'>" + (part.role === "hedge" ? "对冲：和锚资产越负相关越高" : "同向：和锚资产越正相关越高") + "，相关 " + part.corr.toFixed(2) + "</span></p>").join("") + "<p class='note'>这几项等权。50 对应相关系数为 0。</p>";
+  } else {
+    partHost.innerHTML = [
+      ["权益对冲", after.equity, "黄金与沪深300、恒生的平均相关越负，这项越高"],
+      ["GPR 联动", after.gpr, "黄金收益与 GPR 变动越同向，这项越高"],
+      ["美元对冲", after.dollar, "黄金与美元指数越反向，这项越高"],
+    ].map(([name, value, hint]) => "<p style='margin:8px 0'><b>" + name + " " + value.toFixed(0) + "</b><br><span class='note'>" + hint + "</span></p>").join("");
+  }
+
+  const havenScores = rollingHaven();
+  const havenX = [], havenY = [], dotX = [], dotColors = [];
+  LAB.months.forEach((month, i) => {
+    const value = havenScores[i];
+    if (value == null) return;
+    const xValue = i;
+    havenX.push(xValue); havenY.push(value);
+    const high = LAB.haven.high[i];
+    let color = "#8a8478";
+    if (high === 1 && value >= 60) color = "#0072b2";
+    else if (high === 1 && value < 45) color = "#d55e00";
+    else if (high === 1) color = "#e69f00";
+    dotX.push({x:xValue, y:value, color});
+  });
+  const eventIndex = LAB.months.indexOf(event.month);
+  drawChart(document.getElementById("haven"), {
+    title: "36个月滚动避险强度",
+    height: 240, ref: 50, mark: eventIndex, yDigits: 0,
+    xFormat: v => LAB.months[Math.round(v)] || "",
+    xTicks: LAB.months.map((month, i) => month.endsWith("-01") ? i : null).filter(v => v != null && v % 24 === 0),
+    series: [{name:"避险强度", color:"#1c1915", x: havenX, y: havenY}],
+  });
+  paintDots("haven", dotX, eventIndex);
+
+  document.getElementById("heat-title").textContent = NAMES[state.spec.anchor] + "滚动相关，按季度";
+  drawHeat(event, liveHeat());
+  drawIrf();
+  drawBoard(state.width);
+  document.body.dataset.event = event.id;
+  document.body.dataset.goldCum = stats && stats.cum[state.spec.anchor] != null ? stats.cum[state.spec.anchor].toFixed(4) : "";
+  document.body.dataset.haven = score == null ? "" : score.toFixed(4);
+  document.body.dataset.partial = stats ? String(stats.partial) : "";
+  verifyCheck();
+}
+
+function paintDots(hostId, dots) {
+  const svg = document.querySelector("#" + hostId + " svg");
+  if (!svg || !dots.length) return;
+  const width = 860, height = 240, m = {l:54, r:12, t:12, b:36};
+  const iw = width - m.l - m.r, ih = height - m.t - m.b;
+  const xs = dots.map(d => d.x), ys = dots.map(d => d.y);
+  let y0 = Math.min(...ys, 50), y1 = Math.max(...ys, 50);
+  const pad = (y1 - y0) * 0.08 || 1;
+  y0 -= pad; y1 += pad;
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const X = x => m.l + (x - x0) / (x1 - x0) * iw;
+  const Y = y => m.t + (y1 - y) / (y1 - y0) * ih;
+  dots.forEach(dot => {
+    if (LAB.haven.high[dot.x] !== 1) return;
+    svg.appendChild(svgNode("circle", {cx:X(dot.x), cy:Y(dot.y), r:2.2, fill:dot.color}));
+  });
+}
+
+function drawCorrBars(stats) {
+  const host = document.getElementById("corr");
+  host.innerHTML = "";
+  const rows = shownPairs().map(item => [NAMES[state.spec.anchor] + "–" + NAMES[item.id], "c" + pairKey(item.id)]);
+  if (!rows.length) {
+    host.innerHTML = "<p class='note'>没有纳入相关的变量。</p>";
+    return;
+  }
+  const width = 860, height = Math.max(160, 36 + rows.length * 42), m = {l:128, r:16, t:16, b:28};
+  const svg = svgNode("svg", {viewBox:`0 0 ${width} ${height}`});
+  const iw = width - m.l - m.r, ih = height - m.t - m.b;
+  const Y = i => m.t + (i + 0.5) * ih / rows.length;
+  [-1, -0.5, 0, 0.5, 1].forEach(v => {
+    const x = m.l + (v + 1) / 2 * iw;
+    svg.appendChild(svgNode("line", {x1:x, x2:x, y1:m.t, y2:height-m.b, stroke:"#eceae4"}));
+    const text = svgNode("text", {x, y:height-8, "text-anchor":"middle", fill:"#5e584f", "font-size":11});
+    text.textContent = v.toFixed(1);
+    svg.appendChild(text);
+  });
+  const zero = m.l + iw / 2;
+  svg.appendChild(svgNode("line", {x1:zero, x2:zero, y1:m.t, y2:height-m.b, stroke:"#1c1915", "stroke-width":0.8}));
+  rows.forEach((row, i) => {
+    const text = svgNode("text", {x:m.l-8, y:Y(i)+4, "text-anchor":"end", fill:"#1c1915", "font-size":12});
+    text.textContent = row[0];
+    svg.appendChild(text);
+    [["before","#0072b2",-6],["after","#d55e00",6]].forEach(([side, color, dy]) => {
+      const block = stats && stats[side];
+      const value = block ? block[row[1]] : null;
+      if (value == null) return;
+      const x = m.l + (value + 1) / 2 * iw;
+      const y = Y(i) + dy;
+      svg.appendChild(svgNode("line", {x1:zero, x2:x, y1:y, y2:y, stroke:color, "stroke-width":6}));
+    });
+  });
+  [["事前","#0072b2",0],["事后","#d55e00",1]].forEach(([name, color, i]) => {
+    svg.appendChild(svgNode("rect", {x:m.l + i * 70, y:2, width:10, height:10, fill:color}));
+    const text = svgNode("text", {x:m.l + 14 + i * 70, y:11, fill:"#5e584f", "font-size":11});
+    text.textContent = name;
+    svg.appendChild(text);
+  });
+  host.appendChild(svg);
+}
+
+function invertMatrix(matrix) {
+  const n = matrix.length;
+  const a = matrix.map((row, i) => row.concat(Array.from({length:n}, (_, j) => i === j ? 1 : 0)));
+  for (let col = 0; col < n; col++) {
+    let pivot = col;
+    for (let row = col + 1; row < n; row++) if (Math.abs(a[row][col]) > Math.abs(a[pivot][col])) pivot = row;
+    if (Math.abs(a[pivot][col]) < 1e-10) return null;
+    const hold = a[col]; a[col] = a[pivot]; a[pivot] = hold;
+    const div = a[col][col];
+    for (let j = col; j < 2 * n; j++) a[col][j] /= div;
+    for (let row = 0; row < n; row++) {
+      if (row === col) continue;
+      const factor = a[row][col];
+      for (let j = col; j < 2 * n; j++) a[row][j] -= factor * a[col][j];
+    }
+  }
+  return a.map(row => row.slice(n));
+}
+function cholesky(matrix) {
+  const n = matrix.length;
+  const lower = Array.from({length:n}, () => Array(n).fill(0));
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j <= i; j++) {
+      let sum = 0;
+      for (let k = 0; k < j; k++) sum += lower[i][k] * lower[j][k];
+      if (i === j) {
+        const value = matrix[i][i] - sum;
+        if (value <= 1e-12) return null;
+        lower[i][j] = Math.sqrt(value);
+      } else lower[i][j] = (matrix[i][j] - sum) / lower[j][j];
+    }
+  }
+  return lower;
+}
+function fitCustomVar(order) {
+  if (order.length < 2) return null;
+  const cols = order.map(id => id === "dgpr" ? LAB.dgpr : LAB.ret[id]);
+  const sample = [];
+  for (let t = 0; t < LAB.months.length; t++) {
+    const row = cols.map(col => col[t]);
+    if (row.every(value => value != null && isFinite(value))) sample.push(row);
+  }
+  const k = order.length;
+  if (sample.length < k + 30) return null;
+  const p = 1 + k;
+  const xtx = Array.from({length:p}, () => Array(p).fill(0));
+  const xty = Array.from({length:p}, () => Array(k).fill(0));
+  for (let t = 1; t < sample.length; t++) {
+    const x = [1].concat(sample[t - 1]);
+    const y = sample[t];
+    for (let i = 0; i < p; i++) {
+      for (let j = 0; j < p; j++) xtx[i][j] += x[i] * x[j];
+      for (let j = 0; j < k; j++) xty[i][j] += x[i] * y[j];
+    }
+  }
+  const inv = invertMatrix(xtx);
+  if (!inv) return null;
+  const beta = Array.from({length:k}, () => Array(p).fill(0));
+  for (let eq = 0; eq < k; eq++) {
+    for (let i = 0; i < p; i++) {
+      let total = 0;
+      for (let j = 0; j < p; j++) total += inv[i][j] * xty[j][eq];
+      beta[eq][i] = total;
+    }
+  }
+  const resid = [];
+  for (let t = 1; t < sample.length; t++) {
+    const x = [1].concat(sample[t - 1]);
+    const e = [];
+    for (let eq = 0; eq < k; eq++) {
+      let fitted = 0;
+      for (let i = 0; i < p; i++) fitted += beta[eq][i] * x[i];
+      e.push(sample[t][eq] - fitted);
+    }
+    resid.push(e);
+  }
+  const sigma = Array.from({length:k}, () => Array(k).fill(0));
+  resid.forEach(e => { for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) sigma[i][j] += e[i] * e[j]; });
+  for (let i = 0; i < k; i++) for (let j = 0; j < k; j++) sigma[i][j] /= resid.length;
+  const lower = cholesky(sigma);
+  if (!lower) return null;
+  let shock = lower.map(row => row[0]);
+  if (shock[0] < 0) shock = shock.map(value => -value);
+  const steps = [shock];
+  for (let h = 1; h <= 12; h++) {
+    const prev = steps[h - 1];
+    const next = Array(k).fill(0);
+    for (let eq = 0; eq < k; eq++) for (let v = 0; v < k; v++) next[eq] += beta[eq][1 + v] * prev[v];
+    steps.push(next);
+  }
+  const cum = order.map(() => []);
+  for (let eq = 0; eq < k; eq++) {
+    let running = 0;
+    steps.forEach(step => { running += step[eq]; cum[eq].push(Math.round(running * 10000) / 10000); });
+  }
+  return {order, cum, t: sample.length};
+}
+function drawIrf() {
+  const host = document.getElementById("irf");
+  host.innerHTML = "";
+  if (!isPresetVar()) {
+    const fit = fitCustomVar(state.spec.varOn);
+    document.getElementById("irf-title").textContent = fit ? "自定变量的累计脉冲响应（1 阶，T=" + fit.t + "）" : "自定变量的累计脉冲响应";
+    document.getElementById("irf-cap").textContent = fit
+      ? "顺序：" + fit.order.map(id => NAMES[id]).join("、") + "。第一位受到 1 个标准差的正向冲击。这是点估计，没有自助区间。收益变量的纵轴是月度对数收益百分点的累加。恢复论文设定后才会回到带 90% 区间的六变量图。"
+      : "至少留下两个有月度收益的变量，才能估计这个小 VAR。";
+    if (!fit) return;
+    fit.order.forEach((id, index) => {
+      const wrap = document.createElement("div");
+      host.appendChild(wrap);
+      drawChart(wrap, {
+        title: NAMES[id],
+        width: 280, height: 160,
+        margin: {l:42, r:8, t:16, b:28},
+        includeZero: true, yDigits: 1,
+        xTicks: [0, 6, 12],
+        series: [{name: NAMES[id], color:"#0072b2", x: fit.cum[index].map((_, h) => h), y: fit.cum[index]}],
+      });
+      const caption = document.createElement("div");
+      caption.className = "note";
+      caption.textContent = NAMES[id] + (id === "dgpr" ? "（指数点）" : "（%）");
+      wrap.insertBefore(caption, wrap.firstChild);
+    });
+    return;
+  }
+  const spec = LAB.var;
+  document.getElementById("irf-title").textContent = "GPR 冲击的累计脉冲响应（" + spec.lags + " 阶，T=" + spec.t + "）";
+  document.getElementById("irf-cap").textContent = "递归顺序：" + spec.order.join("、") + "。阴影是残差自助法 90% 区间，保留 " + spec.boot_kept + " 次。" + "收益变量的纵轴是月度对数收益百分点的累加，近似价格水平变化；GPR 的纵轴是指数点。这不是结构因果。";
+  spec.keys.forEach((key, index) => {
+    const wrap = document.createElement("div");
+    wrap.id = "irf-" + key;
+    host.appendChild(wrap);
+    drawChart(wrap, {
+      title: spec.order[index],
+      width: 280, height: 160,
+      margin: {l:42, r:8, t:16, b:28},
+      includeZero: true, yDigits: 1,
+      xTicks: [0, 6, 12],
+      series: [{
+        name: spec.order[index], color:"#0072b2",
+        x: spec.horizon, y: spec.cum[key],
+        bandLo: spec.lo[key], bandHi: spec.hi[key],
+      }],
+    });
+    const caption = document.createElement("div");
+    caption.className = "note";
+    caption.textContent = spec.order[index] + "（" + spec.units[index] + "）";
+    wrap.insertBefore(caption, wrap.firstChild);
+  });
+}
+
+function download(hostId, filename) {
+  const svg = document.querySelector("#" + hostId + " svg");
+  if (!svg) return;
+  const clone = svg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  const blob = new Blob([clone.outerHTML], {type:"image/svg+xml"});
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+function downloadGrid(hostId, filename, cols, cellW, cellH) {
+  const svgs = [...document.querySelectorAll("#" + hostId + " svg")];
+  if (!svgs.length) return;
+  const rows = Math.ceil(svgs.length / cols);
+  const wrap = svgNode("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    viewBox: "0 0 " + (cols * cellW) + " " + (rows * cellH),
+    width: cols * cellW,
+    height: rows * cellH,
+  });
+  svgs.forEach((svg, index) => {
+    const group = svgNode("g", {transform: "translate(" + ((index % cols) * cellW) + "," + (Math.floor(index / cols) * cellH) + ")"});
+    group.innerHTML = svg.innerHTML;
+    wrap.appendChild(group);
+  });
+  const blob = new Blob([wrap.outerHTML], {type:"image/svg+xml"});
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+function verifyCheck() {
+  const path = indexedPath(LAB.daily.gold, LAB.meta.check.date, 60);
+  const at = path.tau.indexOf(LAB.meta.check.tau);
+  const got = path.value[at];
+  const ok = Math.abs(got - LAB.meta.check.gold) < 0.05;
+  document.body.dataset.check = ok ? "ok" : "fail";
+  document.body.dataset.goldTau = String(got);
+}
+
+function seg(host, values, current, onPick) {
+  host.innerHTML = "";
+  values.forEach(item => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = item.label;
+    button.setAttribute("aria-pressed", String(item.value === current));
+    button.addEventListener("click", () => onPick(item.value));
+    host.appendChild(button);
+  });
+}
+function boot() {
+  state.spec = loadSpec();
+  document.getElementById("lede").textContent = "月度样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "，共 " + LAB.meta.n_months + " 个月。上面可以换事件和窗口，自定区可以加入自己的事件，并改锚资产、相关角色和脉冲响应的变量顺序。";
+  const dateInput = document.getElementById("ev-date");
+  dateInput.min = LAB.meta.sample_start + "-01";
+  dateInput.max = LAB.meta.sample_end + "-28";
+  const select = document.getElementById("event");
+  select.addEventListener("change", () => { state.eventId = select.value; render(); });
+  document.getElementById("ev-add").addEventListener("click", () => {
+    const name = document.getElementById("ev-name").value.trim();
+    const date = document.getElementById("ev-date").value;
+    const note = document.getElementById("ev-note").value.trim();
+    const msg = document.getElementById("ev-msg");
+    if (!name || !date) { msg.textContent = "名称和日期都要填。"; return; }
+    const month = date.slice(0, 7);
+    if (!LAB.months.includes(month)) {
+      msg.textContent = "这个月不在样本里（" + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "）。";
+      return;
+    }
+    const id = "custom-" + Date.now();
+    state.spec.events.push({id, name, date, month, group:"自定事件", note: note || "页面上自定的事件。"});
+    state.eventId = id;
+    msg.textContent = "已加入，并正在看这个事件。它保存在这台浏览器里。";
+    document.getElementById("ev-name").value = "";
+    document.getElementById("ev-note").value = "";
+    saveSpec();
+    render();
+  });
+  document.getElementById("reset-spec").addEventListener("click", () => {
+    const events = state.spec.events.slice();
+    state.spec = defaultSpec();
+    state.spec.events = events;
+    saveSpec();
+    refreshVariableControls();
+    render();
+  });
+  bindVariableControls();
+  const sessionsHost = document.getElementById("seg-sessions");
+  const widthHost = document.getElementById("seg-width");
+  const paintSeg = () => {
+    seg(sessionsHost, [{value:20,label:"20日"},{value:40,label:"40日"},{value:60,label:"60日"}], state.sessions, value => { state.sessions = value; render(); });
+    seg(widthHost, [{value:6,label:"6个月"},{value:12,label:"12个月"},{value:24,label:"24个月"}], state.width, value => { state.width = value; render(); });
+  };
+  const oldRender = render;
+  render = function () { paintSeg(); fillEvents(); paintEventList(); oldRender(); };
+  document.getElementById("dl-path").addEventListener("click", () => download("path", "event_path.svg"));
+  document.getElementById("dl-gpr").addEventListener("click", () => download("gpr", "event_gpr.svg"));
+  document.getElementById("dl-corr").addEventListener("click", () => download("corr", "event_corr.svg"));
+  document.getElementById("dl-haven").addEventListener("click", () => download("haven", "haven_regime.svg"));
+  document.getElementById("dl-heat").addEventListener("click", () => download("heat", "rolling_corr.svg"));
+  document.getElementById("dl-irf").addEventListener("click", () => downloadGrid("irf", "var_irf_gpr.svg", 3, 280, 160));
+  document.getElementById("foot").textContent = "GPR：matteoiacoviello.com 日度 GPRD，月度取均值，" + LAB.meta.built + " 下载。黄金 GC=F、布伦特 BZ=F、美元指数 DX-Y.NYB、恒生 ^HSI 来自 Yahoo Finance。沪深300是新浪 sh000300 价格指数，不是中证公司的官方归档。收益是月末对数差分×100，未减无风险利率。期货月度收益含换月。避险强度是描述性打分，VAR 是递归顺序而不是结构识别。自定事件和变量保存在这台浏览器里。";
+  render();
+}
+
+let eventSig = "";
+function fillEvents() {
+  const events = allEvents();
+  const sig = events.map(item => item.id).join("|");
+  const select = document.getElementById("event");
+  if (sig !== eventSig) {
+    select.innerHTML = "";
+    ["海峡与石油","制裁","冲突升级","自定事件"].forEach(group => {
+      const members = events.filter(item => item.group === group);
+      if (!members.length) return;
+      const optgroup = document.createElement("optgroup");
+      optgroup.label = group;
+      members.forEach(event => {
+        const option = document.createElement("option");
+        option.value = event.id;
+        option.textContent = event.date.slice(0, 7) + "  " + event.name;
+        optgroup.appendChild(option);
+      });
+      select.appendChild(optgroup);
+    });
+    eventSig = sig;
+  }
+  if ([...select.options].some(option => option.value === state.eventId)) select.value = state.eventId;
+}
+function paintEventList() {
+  const host = document.getElementById("ev-list");
+  host.innerHTML = "";
+  if (!state.spec.events.length) {
+    host.innerHTML = "<p class='note'>还没有自定事件。</p>";
+    return;
+  }
+  state.spec.events.forEach(event => {
+    const row = document.createElement("div");
+    row.className = "ev-item";
+    const text = document.createElement("button");
+    text.type = "button";
+    text.className = "ghost mini";
+    text.style.marginLeft = "0";
+    text.textContent = event.date + "  " + event.name;
+    text.addEventListener("click", () => { state.eventId = event.id; render(); });
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "ghost mini";
+    remove.textContent = "删除";
+    remove.addEventListener("click", () => {
+      state.spec.events = state.spec.events.filter(item => item.id !== event.id);
+      if (state.eventId === event.id) state.eventId = "hormuz_2026";
+      saveSpec();
+      render();
+    });
+    row.append(text, remove);
+    host.appendChild(row);
+  });
+}
+function moveVar(id, dir) {
+  const list = state.spec.varOn.slice();
+  const index = list.indexOf(id);
+  const next = index + dir;
+  if (index < 0 || next < 0 || next >= list.length) return;
+  const hold = list[index];
+  list[index] = list[next];
+  list[next] = hold;
+  state.spec.varOn = list;
+  saveSpec();
+  refreshVariableControls();
+  render();
+}
+function refreshVariableControls() {
+  document.getElementById("anchor").value = state.spec.anchor;
+  document.querySelectorAll("[data-path]").forEach(box => {
+    box.checked = state.spec.path.includes(box.dataset.path);
+    box.disabled = box.dataset.path === state.spec.anchor;
+  });
+  document.querySelectorAll("[data-score]").forEach(select => {
+    const item = state.spec.score.find(entry => entry.id === select.dataset.score);
+    const blocked = select.dataset.score === state.spec.anchor;
+    select.value = blocked ? "off" : item.role;
+    select.disabled = blocked;
+  });
+  const host = document.getElementById("var-order");
+  host.innerHTML = "";
+  const ordered = state.spec.varOn.concat(VAR_IDS.filter(id => !state.spec.varOn.includes(id)));
+  ordered.forEach(id => {
+    const row = document.createElement("div");
+    row.className = "var-row";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.checked = state.spec.varOn.includes(id);
+    box.addEventListener("change", () => {
+      if (box.checked) state.spec.varOn = state.spec.varOn.concat([id]);
+      else state.spec.varOn = state.spec.varOn.filter(item => item !== id);
+      saveSpec();
+      refreshVariableControls();
+      render();
+    });
+    const name = document.createElement("span");
+    name.textContent = NAMES[id] + (state.spec.varOn[0] === id ? "（冲击）" : "");
+    name.style.minWidth = "92px";
+    const up = document.createElement("button");
+    up.type = "button";
+    up.className = "ghost mini";
+    up.textContent = "上移";
+    up.disabled = !state.spec.varOn.includes(id);
+    up.addEventListener("click", () => moveVar(id, -1));
+    const down = document.createElement("button");
+    down.type = "button";
+    down.className = "ghost mini";
+    down.textContent = "下移";
+    down.disabled = !state.spec.varOn.includes(id);
+    down.addEventListener("click", () => moveVar(id, 1));
+    row.append(box, name, up, down);
+    host.appendChild(row);
+  });
+}
+function bindVariableControls() {
+  const anchor = document.getElementById("anchor");
+  PRICE_IDS.forEach(id => {
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = NAMES[id];
+    anchor.appendChild(option);
+  });
+  anchor.addEventListener("change", () => {
+    state.spec.anchor = anchor.value;
+    if (!state.spec.path.includes(state.spec.anchor)) state.spec.path.push(state.spec.anchor);
+    state.spec.score.forEach(item => { if (item.id === state.spec.anchor) item.role = "off"; });
+    saveSpec();
+    refreshVariableControls();
+    render();
+  });
+  const pathHost = document.getElementById("path-picks");
+  PRICE_IDS.forEach(id => {
+    const label = document.createElement("label");
+    label.className = "pick";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.dataset.path = id;
+    box.addEventListener("change", () => {
+      if (id === state.spec.anchor) { box.checked = true; return; }
+      state.spec.path = PRICE_IDS.filter(name => {
+        const input = document.querySelector("[data-path='" + name + "']");
+        return name === state.spec.anchor || input.checked;
+      });
+      saveSpec();
+      render();
+    });
+    label.append(box, document.createTextNode(NAMES[id]));
+    pathHost.appendChild(label);
+  });
+  const scoreHost = document.getElementById("score-picks");
+  SCORE_IDS.forEach(id => {
+    const row = document.createElement("div");
+    row.className = "pick";
+    const name = document.createElement("span");
+    name.textContent = NAMES[id];
+    name.style.width = "72px";
+    const select = document.createElement("select");
+    select.dataset.score = id;
+    [["off","不纳入"],["watch","对照"],["hedge","对冲"],["comove","同向"]].forEach(([value, label]) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = label;
+      select.appendChild(option);
+    });
+    select.addEventListener("change", () => {
+      const item = state.spec.score.find(entry => entry.id === id);
+      item.role = id === state.spec.anchor ? "off" : select.value;
+      saveSpec();
+      render();
+    });
+    row.append(name, select);
+    scoreHost.appendChild(row);
+  });
+  refreshVariableControls();
+}
+boot();
+</script>
+</body>
+</html>

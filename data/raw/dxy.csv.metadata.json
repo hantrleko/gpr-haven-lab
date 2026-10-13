@@ -1,0 +1,75 @@
+{
+  "source": "Yahoo Finance chart endpoint",
+  "url": "https://query1.finance.yahoo.com/v8/finance/chart/DX-Y.NYB?period1=1072915200&period2=1791936000&interval=1d&events=history",
+  "query": {
+    "symbol": "DX-Y.NYB",
+    "start": "2004-01-01",
+    "end": "2026-10-14",
+    "interval": "1d",
+    "output": "F:\\Hermes\\Academic Research\\Projects\\GPR_Haven_Lab\\data\\raw\\dxy.csv",
+    "metadata": null
+  },
+  "meta": {
+    "currency": "USD",
+    "symbol": "DX-Y.NYB",
+    "exchangeName": "NYB",
+    "fullExchangeName": "ICE Futures",
+    "instrumentType": "INDEX",
+    "firstTradeDate": 31813200,
+    "regularMarketTime": 1791876870,
+    "hasPrePostMarketData": false,
+    "gmtoffset": -14400,
+    "timezone": "EDT",
+    "exchangeTimezoneName": "America/New_York",
+    "regularMarketPrice": 102.265,
+    "regularMarketChangePercent": -0.316,
+    "fulldayPrice": 102.265,
+    "fulldayChange": -0.324,
+    "fulldayChangePercent": -0.316,
+    "fiftyTwoWeekHigh": 102.61,
+    "fiftyTwoWeekLow": 95.55,
+    "regularMarketDayHigh": 102.574,
+    "regularMarketDayLow": 102.265,
+    "longName": "US Dollar Index",
+    "shortName": "ICE US Dollar Index - Index - C",
+    "chartPreviousClose": 86.92,
+    "priceHint": 2,
+    "currentTradingPeriod": {
+      "pre": {
+        "timezone": "EDT",
+        "end": 1791864000,
+        "start": 1791864000,
+        "gmtoffset": -14400
+      },
+      "regular": {
+        "timezone": "EDT",
+        "end": 1791950340,
+        "start": 1791864000,
+        "gmtoffset": -14400
+      },
+      "post": {
+        "timezone": "EDT",
+        "end": 1791950340,
+        "start": 1791950340,
+        "gmtoffset": -14400
+      }
+    },
+    "dataGranularity": "1d",
+    "range": "",
+    "validRanges": [
+      "1d",
+      "5d",
+      "1mo",
+      "3mo",
+      "6mo",
+      "1y",
+      "2y",
+      "5y",
+      "10y",
+      "ytd",
+      "max"
+    ]
+  },
+  "downloaded_at_utc": "2026-10-13T07:44:33.735845+00:00",
+  "rows": 6955
+}

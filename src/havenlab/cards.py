@@ -98,7 +98,7 @@ def export_cards(lab: dict, dest: Path) -> None:
         ax.spines["right"].set_visible(False)
         link = f"{SITE}?e={event['id']}&w=6&d=40"
         fig.text(0.08, 0.08, link, fontsize=11, color="#1f4b73")
-        fig.text(0.08, 0.05, "描述性窗口，不是因果识别。EF Lab V0.5", fontsize=11, color="#3a342c")
+        fig.text(0.08, 0.05, "描述性窗口，不是因果识别。EF Lab V1.0", fontsize=11, color="#3a342c")
         fig.savefig(dest / f"{event['id']}.jpg", format="jpg", facecolor=fig.get_facecolor())
         plt.close(fig)
 

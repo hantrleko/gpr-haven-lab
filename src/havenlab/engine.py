@@ -31,6 +31,7 @@ import pandas as pd
 from statsmodels.tsa.api import VAR
 
 from havenlab.events import EVENTS
+from havenlab.version import API_VERSION, EVENT_REGISTRY_VERSION, LAB_VERSION
 
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
@@ -179,6 +180,37 @@ def build_panel(today: pd.Timestamp | None = None) -> tuple[pd.DataFrame, dict[s
         raise RuntimeError("Monthly panel is not a continuous calendar.")
     sample.index.name = "period"
     return sample, daily
+
+
+def _clip_corr(value: float) -> float:
+    return float(max(min(value, 0.9999), -0.9999))
+
+
+def fisher_z(value: float | None) -> float | None:
+    if value is None or not np.isfinite(value):
+        return None
+    r = _clip_corr(float(value))
+    return 0.5 * np.log((1.0 + r) / (1.0 - r))
+
+
+def corr_delta_interval(
+    before: float | None,
+    n_before: int,
+    after: float | None,
+    n_after: int,
+) -> dict[str, float | None]:
+    """Approximate 90% interval for after-minus-before correlation change."""
+    z1 = fisher_z(before)
+    z2 = fisher_z(after)
+    if z1 is None or z2 is None or n_before < 4 or n_after < 4:
+        return {"delta": None, "lo": None, "hi": None}
+    delta = z2 - z1
+    se = float(np.sqrt(1.0 / (n_before - 3) + 1.0 / (n_after - 3)))
+    return {
+        "delta": round(float(after - before), 4),
+        "lo": round(float(np.tanh(delta - 1.645 * se)), 4),
+        "hi": round(float(np.tanh(delta + 1.645 * se)), 4),
+    }
 
 
 def pearson(x: np.ndarray, y: np.ndarray, min_n: int = 4) -> tuple[float | None, int]:
@@ -411,6 +443,7 @@ def fit_var(panel: pd.DataFrame) -> dict:
     else:
         aic_pairs = enumerate(aic_raw)
     aic_table = {str(int(candidate)): round(float(value), 3) for candidate, value in aic_pairs}
+    lp = fit_local_projection(panel)
     return {
         "lags": lag,
         "t": int(len(endog)),
@@ -422,11 +455,46 @@ def fit_var(panel: pd.DataFrame) -> dict:
         "cum": pack(point),
         "lo": pack(lower),
         "hi": pack(upper),
+        "lp": lp,
         "n_boot": BOOT_REPS,
         "boot_kept": int(len(draws)),
         "sample_start": str(endog.index[0]),
         "sample_end": str(endog.index[-1]),
     }
+
+
+def fit_local_projection(panel: pd.DataFrame, horizon: int = VAR_HORIZON) -> dict:
+    """Horizon-by-horizon OLS of cumulative returns on the GPR shock (HAC SE)."""
+    import statsmodels.api as sm
+    from statsmodels.regression.linear_model import OLS
+
+    frame = panel[["dgpr", "ret_brent", "ret_dxy", "ret_gold", "ret_csi", "ret_hsi"]].dropna().astype(float)
+    shock = frame["dgpr"]
+    keys = ["ret_brent", "ret_dxy", "ret_gold", "ret_csi", "ret_hsi"]
+    cum: dict[str, list[float]] = {key: [] for key in keys}
+    lo: dict[str, list[float]] = {key: [] for key in keys}
+    hi: dict[str, list[float]] = {key: [] for key in keys}
+    for key in keys:
+        running = 0.0
+        for h in range(horizon + 1):
+            if h == 0:
+                target = frame[key]
+            else:
+                target = frame[key].rolling(h + 1).sum().shift(-h)
+            reg = pd.concat([target.rename("y"), shock.rename("shock")], axis=1).dropna()
+            if len(reg) < 40:
+                cum[key].append(round(running, 4))
+                lo[key].append(round(running, 4))
+                hi[key].append(round(running, 4))
+                continue
+            model = OLS(reg["y"], sm.add_constant(reg["shock"])).fit(cov_type="HAC", cov_kwds={"maxlags": max(1, h + 1)})
+            beta = float(model.params["shock"])
+            se = float(model.bse["shock"])
+            running += beta
+            cum[key].append(round(running, 4))
+            lo[key].append(round(running - 1.645 * se * (h + 1), 4))
+            hi[key].append(round(running + 1.645 * se * (h + 1), 4))
+    return {"horizon": list(range(horizon + 1)), "cum": cum, "lo": lo, "hi": hi, "note": "LP cumulative sum; not a structural shock."}
 
 
 def trading_path(series: pd.Series, event_date: str, sessions: int = MAX_SESSIONS) -> dict:
@@ -483,37 +551,82 @@ def gold_daily_jumps(series: pd.Series, n: int = 2) -> list[dict]:
     return rows
 
 
-def placebo_sample(panel: pd.DataFrame, events: list[dict], width: int, n_draw: int = PLACEBO_DRAW, seed: int = PLACEBO_SEED) -> dict:
-    """Gold cumulative log returns on ordinary months.
-
-    A start month is eligible when its after window is complete and does not
-    contain a hand-dated event month. The draw is seeded so the percentile
-    does not change between runs.
-    """
-    event_idx = set()
+def _placebo_event_idx(panel: pd.DataFrame, events: list[dict]) -> set[int]:
+    event_idx: set[int] = set()
     for event in events:
         month = str(event.get("month") or pd.Timestamp(event["date"]).to_period("M"))
         period = pd.Period(month, freq="M")
         if period not in panel.index:
             continue
         event_idx.add(int(panel.index.get_loc(period)))
-    pool: list[float] = []
-    for i in range(0, len(panel) - width + 1):
+    return event_idx
+
+
+def _placebo_pools(panel: pd.DataFrame, events: list[dict], width: int, *, step: int) -> dict[str, list[float]]:
+    event_idx = _placebo_event_idx(panel, events)
+    gold: list[float] = []
+    excess: list[float] = []
+    haven: list[float] = []
+    for i in range(0, len(panel) - width + 1, step):
         if any(k in event_idx for k in range(i, i + width)):
             continue
         window = event_window(panel, str(panel.index[i]), width)
         if window["partial"] or window["n_after"] < width or window["cum"]["gold"] is None:
             continue
-        pool.append(float(window["cum"]["gold"]))
+        gold.append(float(window["cum"]["gold"]))
+        csi = window["cum"]["csi"]
+        if csi is not None:
+            excess.append(float(window["cum"]["gold"] - csi))
+        score = (window["haven_after"] or {}).get("score")
+        if score is not None:
+            haven.append(float(score))
+    return {"gold": gold, "gold_excess_csi": excess, "haven": haven}
+
+
+def _draw_placebo(pool: dict[str, list[float]], n_draw: int, seed: int) -> dict:
     rng = np.random.default_rng(seed)
-    take = min(n_draw, len(pool))
-    picked = pool if take == len(pool) else [pool[int(j)] for j in rng.choice(len(pool), size=take, replace=False)]
-    picked = sorted(float(value) for value in picked)
+    out: dict = {"seed": seed}
+    for key, values in pool.items():
+        take = min(n_draw, len(values))
+        if take == 0:
+            out[key] = []
+            out[f"n_{key}"] = 0
+            continue
+        picked = values if take == len(values) else [values[int(j)] for j in rng.choice(len(values), size=take, replace=False)]
+        out[key] = [round(float(value), 4) for value in sorted(picked)]
+        out[f"n_{key}"] = len(values)
+    out["n_draw"] = len(out.get("gold") or [])
+    return out
+
+
+def placebo_sample(panel: pd.DataFrame, events: list[dict], width: int, n_draw: int = PLACEBO_DRAW, seed: int = PLACEBO_SEED) -> dict:
+    """Overlapping-window placebo draw (legacy flat gold list)."""
+    pool = _placebo_pools(panel, events, width, step=1)
+    drawn = _draw_placebo(pool, n_draw, seed)
     return {
         "seed": seed,
-        "n_pool": len(pool),
-        "n_draw": len(picked),
-        "gold": [round(value, 4) for value in picked],
+        "n_pool": drawn.get("n_gold", 0),
+        "n_draw": drawn["n_draw"],
+        "gold": drawn["gold"],
+    }
+
+
+def placebo_bundle(panel: pd.DataFrame, events: list[dict], width: int, n_draw: int = PLACEBO_DRAW, seed: int = PLACEBO_SEED) -> dict:
+    overlap_pool = _placebo_pools(panel, events, width, step=1)
+    blocked_pool = _placebo_pools(panel, events, width, step=width)
+    overlap = _draw_placebo(overlap_pool, n_draw, seed)
+    blocked = _draw_placebo(blocked_pool, n_draw, seed + 1)
+    overlap["mode"] = "overlapping"
+    blocked["mode"] = "blocked_nonoverlap"
+    return {
+        "overlapping": overlap,
+        "blocked": blocked,
+        "seed": seed,
+        "gold": blocked["gold"],
+        "gold_excess_csi": blocked.get("gold_excess_csi") or [],
+        "haven": blocked.get("haven") or [],
+        "n_pool": blocked.get("n_gold", 0),
+        "n_draw": blocked["n_draw"],
     }
 
 
@@ -556,9 +669,34 @@ def build_lab(today: pd.Timestamp | None = None) -> dict:
         "events": events,
         "web_daily": web_daily,
         "check": {"date": "2026-03-02", "tau": check_tau, "gold": round(check_path["value"][check_index], 4)},
-        "placebo": {str(width): placebo_sample(panel, events, width) for width in (6, 12, 24)},
+        "placebo": {str(width): placebo_bundle(panel, events, width) for width in (6, 12, 24)},
         "gold_jumps": gold_daily_jumps(daily["gold"], n=2),
+        "gold_lbma": _gold_lbma_check(daily["gold"]),
     }
+
+
+def _gold_lbma_check(gold_futures: pd.Series) -> dict | None:
+    path = RAW / "gold_lbma_fred.csv"
+    if not path.exists():
+        return None
+    try:
+        lbma = pd.read_csv(path)
+        col = "GOLDAMGBD228NLBM" if "GOLDAMGBD228NLBM" in lbma.columns else lbma.columns[-1]
+        lbma["date"] = pd.to_datetime(lbma["DATE"] if "DATE" in lbma.columns else lbma.iloc[:, 0])
+        spot = pd.Series(pd.to_numeric(lbma[col], errors="coerce").values, index=lbma["date"]).dropna()
+        stamp = pd.Timestamp("2026-01-30")
+        if stamp not in gold_futures.index or stamp not in spot.index:
+            return {"status": "partial", "note": "LBMA file present but 2026-01-30 missing on one side."}
+        f_ret = 100.0 * np.log(gold_futures.loc[stamp] / gold_futures.shift(1).loc[stamp])
+        s_ret = 100.0 * np.log(spot.loc[stamp] / spot.shift(1).loc[stamp])
+        return {
+            "status": "ok",
+            "date": "2026-01-30",
+            "futures_log_pct": round(float(f_ret), 2),
+            "lbma_log_pct": round(float(s_ret), 2),
+        }
+    except Exception as exc:
+        return {"status": "error", "note": str(exc)[:200]}
 
 
 def summary_rows(panel: pd.DataFrame, widths: tuple[int, ...] = (6, 12)) -> pd.DataFrame:
@@ -624,6 +762,9 @@ def web_payload(lab: dict) -> dict:
         )
     return {
         "meta": {
+            "version": LAB_VERSION,
+            "api_version": API_VERSION,
+            "event_registry": EVENT_REGISTRY_VERSION,
             "sample_start": str(panel.index[0]),
             "sample_end": str(panel.index[-1]),
             "n_months": int(len(panel)),
@@ -638,6 +779,7 @@ def web_payload(lab: dict) -> dict:
             "sample_pin": str(SAMPLE_END),
             "check": lab["check"],
             "gold_jumps": lab.get("gold_jumps") or [],
+            "gold_lbma": lab.get("gold_lbma"),
         },
         "months": [str(period) for period in panel.index],
         "ret": {name: _list_or_none(panel[f"ret_{name}"], 6) for name in ASSETS},
@@ -667,11 +809,41 @@ def web_payload(lab: dict) -> dict:
             "boot_kept": var["boot_kept"],
             "sample_start": var["sample_start"],
             "sample_end": var["sample_end"],
+            "lp": var.get("lp"),
         },
         "events": events,
         "placebo": lab.get("placebo") or {},
         "daily": lab["web_daily"],
+        "windows": _window_corr_payload(panel),
     }
+
+
+def _window_corr_payload(panel: pd.DataFrame) -> dict:
+    out: dict = {}
+    for event in EVENTS:
+        month = str(pd.Timestamp(event["date"]).to_period("M"))
+        out[event["id"]] = {}
+        for width in (6, 12, 24):
+            try:
+                window = event_window(panel, month, width)
+            except KeyError:
+                continue
+            before = window["haven_before"] or {}
+            after = window["haven_after"] or {}
+            out[event["id"]][str(width)] = {
+                "corr_gold_csi": corr_delta_interval(
+                    before.get("corr_gold_csi"),
+                    window["n_before"],
+                    after.get("corr_gold_csi"),
+                    window["n_after"],
+                )
+            }
+    return out
+
+
+def split_web_payload(payload: dict) -> tuple[dict, dict]:
+    daily = {"daily": payload.pop("daily")}
+    return payload, daily
 
 
 def canvas_payload(lab: dict) -> dict:
@@ -726,7 +898,9 @@ def write_tables(lab: dict, output: Path) -> pd.DataFrame:
         "csi300": "Sina Finance sh000300 via akshare, price index",
         "returns": "100 * log month-end price change; not excess of the risk-free rate",
         "haven": "equal weight of equity hedge, GPR co-movement, and dollar hedge; 50 is zero correlation. Site-defined, not a literature index.",
-        "placebo": f"seed {PLACEBO_SEED}, draw {PLACEBO_DRAW} complete windows that do not contain a hand-dated event month",
+        "placebo": f"seed {PLACEBO_SEED}; overlapping pool plus blocked non-overlapping draw ({PLACEBO_DRAW})",
+        "lab_version": LAB_VERSION,
+        "api_version": API_VERSION,
         "var": "recursive, GPR difference ordered first; AIC lag in 1..3; cumulative orthogonal IRF",
         "redistribution": "Yahoo and Sina raw files are not covered by the code license and are not redistributed from this repo.",
     }

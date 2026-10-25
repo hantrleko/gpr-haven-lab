@@ -13,7 +13,9 @@
   "csi300": "Sina Finance sh000300 via akshare, price index",
   "returns": "100 * log month-end price change; not excess of the risk-free rate",
   "haven": "equal weight of equity hedge, GPR co-movement, and dollar hedge; 50 is zero correlation. Site-defined, not a literature index.",
-  "placebo": "seed 20261013, draw 120 complete windows that do not contain a hand-dated event month",
+  "placebo": "seed 20261013; overlapping pool plus blocked non-overlapping draw (120)",
+  "lab_version": "V1.0",
+  "api_version": "1.0.0",
   "var": "recursive, GPR difference ordered first; AIC lag in 1..3; cumulative orthogonal IRF",
   "redistribution": "Yahoo and Sina raw files are not covered by the code license and are not redistributed from this repo."
 }

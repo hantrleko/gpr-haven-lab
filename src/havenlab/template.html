@@ -344,7 +344,7 @@
       <p class="note">2026-01-30 的 GC=F 对数跌幅大于 2013-04-15。这是连续期货合约，不是 LBMA 定盘。本构建没有配上现货，不能排除换月跳变。月度收益用月末对月末，会把这个交易日算进 2026 年 1 月。</p>
     </div>
   </details>
-  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.5 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现请运行仓库里的 <code>build.py</code>。</p>
+  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V1.0 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a> · <a href="embed.html">嵌入</a></p>
   <footer id="foot"></footer>
 </main>
 <div id="tip"></div>
@@ -615,12 +615,22 @@ function monthHasAfter(month) {
 function sessionAfter(date) {
   return LAB.daily.gold.dates.some(item => item > date);
 }
-function goldPct(value) {
-  const pack = LAB.placebo && LAB.placebo[String(state.width)];
-  if (!pack || !pack.gold || !pack.gold.length || value == null || !isFinite(value)) return null;
+function labVersion() {
+  return (LAB && LAB.meta && LAB.meta.version) ? LAB.meta.version : "V1.0";
+}
+function placeboPack() {
+  const raw = LAB.placebo && LAB.placebo[String(state.width)];
+  if (!raw) return null;
+  if (raw.blocked && raw.blocked.gold && raw.blocked.gold.length) return raw.blocked;
+  return raw;
+}
+function goldPct(value, key) {
+  const pack = placeboPack();
+  const series = (pack && pack[key || "gold"]) || (pack && pack.gold);
+  if (!series || !series.length || value == null || !isFinite(value)) return null;
   let n = 0;
-  for (const item of pack.gold) if (item <= value + 1e-9) n++;
-  return n / pack.gold.length;
+  for (const item of series) if (item <= value + 1e-9) n++;
+  return n / series.length;
 }
 function sentence(event, stats) {
   const title = eventTitle(event);
@@ -647,6 +657,10 @@ function sentence(event, stats) {
   else if (anchor === "gold" && g < 0 && c < 0 && state.spec.path.includes("csi")) { tone = "bad"; claim = state.lang === "en" ? "Gold and CSI 300 fall together, which looks more like tighter liquidity and real rates than gold alone taking the haven bid. " : "黄金与沪深300同时下跌，更像流动性和实际利率一起抽紧，而不是黄金单独承接避险买盘。"; }
   else if (anchor === "gold" && g > 0 && c > 0 && state.spec.path.includes("csi")) claim = state.lang === "en" ? "Gold and CSI 300 rise together, so the haven asset and the risk asset do not split. " : "黄金与沪深300同时上涨，避险资产和风险资产没有反向分开。";
   else claim = state.lang === "en" ? "The numbers above are cumulative log returns for the anchor and the selected series. " : "上面是锚资产和已选序列在这个窗口里的累计对数收益。";
+  const pct = anchor === "gold" && stats.cum.gold != null ? goldPct(stats.cum.gold) : null;
+  const pctBit = pct == null ? "" : (state.lang === "en"
+    ? "Gold's after-window return sits near the " + Math.round(100 * pct) + "th percentile of blocked non-overlapping placebo months (not causal). "
+    : "黄金事后累计收益约处于非重叠安慰剂月份分布的第 " + Math.round(100 * pct) + " 分位（非因果对照）。");
   const cut = stats.partial ? (state.lang === "en" ? "The after window is incomplete and uses only the months on hand. " : "事后窗口不完整，累计收益只覆盖可得月份。") : "";
   const windowBit = state.lang === "en"
     ? "Sample " + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ", prices ±" + state.sessions + " sessions, correlation window " + state.width + " months. "
@@ -657,7 +671,7 @@ function sentence(event, stats) {
   const head = state.lang === "en"
     ? title + " (" + event.date + "), " + stats.nAfter + " months after: " + names + ". "
     : title + "（" + event.date + "）之后 " + stats.nAfter + " 个月：" + names + "。";
-  return {tone, text: head + corrBit + claim + cut + windowBit + caveat};
+  return {tone, text: head + corrBit + claim + pctBit + cut + windowBit + caveat};
 }
 function pairKey(id) {
   return {brent:"Brent", dxy:"Dxy", csi:"Csi", hsi:"Hsi", dgpr:"Gpr"}[id];
@@ -1015,9 +1029,9 @@ function figureCaption() {
   const en = state.lang === "en";
   const bits = state.spec.path.map(id => NAMES[id] + " " + fmt(stats && stats.cum[id]) + "%").join(en ? "; " : "，");
   if (en) {
-    return "Figure. Price path around " + eventTitle(event) + " (" + event.date + "), " + state.sessions + " sessions, indexed to 100 at the " + (state.base === "pre" ? "last close before the event" : "event-day close") + ". Anchor: " + NAMES[anchor] + ". Cumulative log return over " + (stats ? stats.nAfter : "—") + " months after: " + bits + ". Sample " + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ". Descriptive window, not causal identification. EF Lab V0.5. For study only. Not investment advice.";
+    return "Figure. Price path around " + eventTitle(event) + " (" + event.date + "), " + state.sessions + " sessions, indexed to 100 at the " + (state.base === "pre" ? "last close before the event" : "event-day close") + ". Anchor: " + NAMES[anchor] + ". Cumulative log return over " + (stats ? stats.nAfter : "—") + " months after: " + bits + ". Sample " + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ". Descriptive window, not causal identification. EF Lab " + labVersion() + ". For study only. Not investment advice.";
   }
-  return "图 " + eventTitle(event) + "（" + event.date + "）前后 " + state.sessions + " 个交易日的价格路径，指数以" + (state.base === "pre" ? "事件前最后收盘" : "事件日收盘") + "为 100。锚资产为" + NAMES[anchor] + "。事后 " + (stats ? stats.nAfter : "—") + " 个月累计对数收益：" + bits + "。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。GPR 为 Caldara–Iacoviello 日度 GPRD 的月均值；黄金、布伦特、美元指数和恒生来自 Yahoo Finance，沪深300来自新浪财经。描述性窗口，不是因果识别。EF Lab V0.5，仅供学习与研究，不构成投资建议。";
+  return "图 " + eventTitle(event) + "（" + event.date + "）前后 " + state.sessions + " 个交易日的价格路径，指数以" + (state.base === "pre" ? "事件前最后收盘" : "事件日收盘") + "为 100。锚资产为" + NAMES[anchor] + "。事后 " + (stats ? stats.nAfter : "—") + " 个月累计对数收益：" + bits + "。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。GPR 为 Caldara–Iacoviello 日度 GPRD 的月均值；黄金、布伦特、美元指数和恒生来自 Yahoo Finance，沪深300来自新浪财经。描述性窗口，不是因果识别。EF Lab " + labVersion() + "，仅供学习与研究，不构成投资建议。";
 }
 function drawBoard(width) {
   const table = document.getElementById("board");
@@ -1102,8 +1116,8 @@ function applyI18n() {
   document.title = en ? "EF Lab | Geopolitical risk and safe havens" : "EF Lab | 地缘政治风险 × 避险资产";
   const foot = document.getElementById("site-foot");
   if (foot) foot.innerHTML = en
-    ? 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.5 · For study only. Not investment advice. Past prices are not a forecast. Data are not updated automatically; the published sample ends in 2026-09. Reproduce with <code>build.py</code>.'
-    : 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V0.5 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现请运行仓库里的 <code>build.py</code>。';
+    ? 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · For study only. Not investment advice. Past prices are not a forecast. Data are not updated automatically; the published sample ends in 2026-09. Reproduce with <code>fetch_data.py</code> and <code>build.py</code>. <a href="paper.html">Paper notes</a> · <a href="feed.xml">RSS</a>.'
+    : 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a>。';
   if (LAB) {
     document.getElementById("lede").textContent = en
       ? "Monthly sample " + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ", " + LAB.meta.n_months + " months. Pick an event, then read the price path, the correlation change, and the site-defined haven score. Data change only when someone reruns build.py."
@@ -1588,7 +1602,7 @@ function downloadEventCsv() {
   const anchor = state.spec.anchor;
   const other = ["csi", "brent", "hsi", "dxy"].find(id => id !== anchor && state.spec.path.includes(id)) || "";
   const lines = [
-    ["note", "EF Lab V0.5。超额=锚资产累计对数收益减对照资产，单位是百分点。避险强度是本站自定的三项等权分数，50 为零相关，不是文献标准指数。事后窗口从事件月起算。描述性结果，不是因果识别。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。"],
+    ["note", "EF Lab " + labVersion() + "。超额=锚资产累计对数收益减对照资产，单位是百分点。避险强度是本站自定的三项等权分数，50 为零相关，不是文献标准指数。安慰剂分位默认用非重叠窗口。事后窗口从事件月起算。描述性结果，不是因果识别。样本 " + LAB.meta.sample_start + " 至 " + LAB.meta.sample_end + "。"],
     ["event", "date", "window_months", "n_after", "partial", "anchor", "anchor_cum", "other", "other_cum", "excess", "haven"],
   ];
   allEvents().forEach(event => {
@@ -2107,10 +2121,16 @@ async function start() {
   busy.hidden = false;
   busy.textContent = "正在载入数据…";
   try {
-    LAB = await (await fetch("lab_data.json")).json();
+    const monthlyResp = await fetch("lab_data_monthly.json");
+    if (monthlyResp.ok) LAB = await monthlyResp.json();
+    else LAB = await (await fetch("lab_data.json")).json();
+    if (!LAB.daily) {
+      const dailyResp = await fetch("lab_data_daily.json");
+      if (dailyResp.ok) Object.assign(LAB, await dailyResp.json());
+    }
   } catch (err) {
     busy.hidden = false;
-    busy.textContent = "没有载入 lab_data.json。请打开网站，或在本目录运行本地服务器，不要直接双击 html 文件。";
+    busy.textContent = "没有载入 lab_data_monthly.json / lab_data.json。请打开网站，或在本目录运行本地服务器，不要直接双击 html 文件。";
     return;
   }
   busy.hidden = true;

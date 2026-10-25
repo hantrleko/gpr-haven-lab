@@ -16,8 +16,11 @@ from havenlab.engine import (  # noqa: E402
     build_panel,
     event_window,
     gold_daily_jumps,
+    placebo_bundle,
     placebo_sample,
+    web_payload,
 )
+from havenlab.version import LAB_VERSION
 from havenlab.events import EVENTS  # noqa: E402
 
 
@@ -64,10 +67,21 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(first["gold"], second["gold"])
         self.assertEqual(first["n_draw"], 120)
         self.assertGreater(first["n_pool"], 120)
+        bundle = placebo_bundle(self.panel, EVENTS, 6)
+        self.assertIn("blocked", bundle)
+        self.assertLessEqual(bundle["blocked"]["n_gold"], bundle["overlapping"]["n_gold"])
         hormuz = event_window(self.panel, "2026-03", 6)["cum"]["gold"]
-        rank = sum(value <= hormuz for value in first["gold"]) / len(first["gold"])
+        rank = sum(value <= hormuz for value in bundle["gold"]) / len(bundle["gold"])
         self.assertGreaterEqual(rank, 0)
         self.assertLessEqual(rank, 1)
+
+    def test_web_payload_version(self):
+        from havenlab.engine import build_lab
+
+        payload = web_payload(build_lab())
+        self.assertEqual(payload["meta"]["version"], LAB_VERSION)
+        self.assertIn("windows", payload)
+        self.assertIn("lp", payload["var"])
 
     def test_non_mideast_events_exist(self):
         ids = {event["id"] for event in EVENTS}

@@ -26,6 +26,12 @@ YAHOO = {
     "dxy.csv": "DX-Y.NYB",
     "hsi.csv": "^HSI",
 }
+YAHOO_EXTENDED = {
+    "silver_si.csv": "SI=F",
+    "vix.csv": "^VIX",
+    "ust10.csv": "^TNX",
+}
+FRED_TIPS = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFII10"
 FRED_LBMA = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GOLDAMGBD228NLBM"
 
 
@@ -68,8 +74,11 @@ def _yahoo_chart(symbol: str, period1: int = 1162339200) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def fetch_yahoo() -> None:
-    for filename, symbol in YAHOO.items():
+def fetch_yahoo(extra: dict[str, str] | None = None) -> None:
+    mapping = dict(YAHOO)
+    if extra:
+        mapping.update(extra)
+    for filename, symbol in mapping.items():
         frame = _yahoo_chart(symbol)
         path = RAW / filename
         frame.to_csv(path, index=False)
@@ -118,11 +127,33 @@ def write_manifest() -> None:
     print(f"Wrote {out}")
 
 
+def fetch_tips_optional() -> None:
+    path = RAW / "tips10_fred.csv"
+    try:
+        resp = requests.get(FRED_TIPS, timeout=45, headers={"User-Agent": "GPR-Haven-Lab/2.0"})
+        resp.raise_for_status()
+        path.write_bytes(resp.content)
+        print(f"Wrote optional {path} (sha256={_sha256(path)[:12]})")
+    except Exception as exc:
+        print(f"TIPS/FRED skipped: {exc}", file=sys.stderr)
+
+
 def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Download raw inputs into data/raw/.")
+    parser.add_argument(
+        "--extended",
+        action="store_true",
+        help="Also download silver, VIX, 10-year yield, and 10-year TIPS.",
+    )
+    args = parser.parse_args()
     fetch_gpr()
-    fetch_yahoo()
+    fetch_yahoo(YAHOO_EXTENDED if args.extended else None)
     fetch_csi()
     fetch_lbma_optional()
+    if args.extended:
+        fetch_tips_optional()
     write_manifest()
     print("Done. Run: python build.py")
 

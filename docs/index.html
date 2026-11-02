@@ -20,7 +20,7 @@
 <meta name="twitter:description" content="事件窗口里的黄金、油价和股指路径，以及一个自定的避险强度。仅供学习与研究，不构成投资建议。" />
 <meta name="twitter:image" content="https://hantrleko.github.io/gpr-haven-lab/og.jpg" />
 <style>
-  :root {
+:root {
     --bg: #f3f0e8;
     --paper: #fbfaf6;
     --ink: #1c1915;
@@ -319,10 +319,17 @@
       <h2 id="irf-title">GPR 冲击的累计脉冲响应</h2>
       <button class="ghost" type="button" id="dl-irf" data-en="Download SVG">下载 SVG</button>
     </div>
+    <div class="seg" id="seg-irf"></div>
     <div class="irf-grid" id="irf"></div>
     <p id="dl-status" class="note" role="status"></p>
     <table id="irf-table" class="data-table"></table>
     <p class="cap" id="irf-cap"></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2 data-en="Daily cumulative abnormal returns">日度累计异常收益</h2></div>
+    <div style="overflow-x:auto"><table id="car-table" class="data-table"></table></div>
+    <p class="cap" id="car-cap" data-en="Mean-adjusted CAR. The estimation window is trading days [-120, -20]. q is a Benjamini-Hochberg value across the built-in events for that asset and window. This is not a market-model residual and it is not a causal effect.">均值调整的累计异常收益。估计窗是事件前第 120 到第 20 个交易日。q 是同一资产、同一窗口里，对全部内置事件做 Benjamini–Hochberg 校正后的值。不是市场模型残差，也不是因果效应。</p>
   </section>
 
   <section class="panel">
@@ -341,10 +348,11 @@
       <p class="note">论文设定的脉冲响应是六变量月度 VAR，滞后由 AIC 在 1 至 3 阶里选出，本样本为 1 阶。Cholesky 顺序：GPR 变动、布伦特、美元、黄金、沪深300、恒生。图中是 1 个标准差正向 GPR 冲击的累计响应，阴影是 200 次残差自助的 90% 区间。自定顺序只重估 1 阶点估计，没有区间。这是递归排序，不是结构因果。</p>
       <p class="note">短窗口相关不稳定。打开页面默认用 12 个月；6 个月大约只有 6 个点，留给需要对照的时候。苏莱曼尼之后的 6 个月穿过 2020 年 3 月疫情。2026 年 3 月霍尔木兹的日期，是用路透 2026-03-26 关于海峡中断的报道回溯到 3 月 2 日，本实验室没有逐条核对原始电讯。全样本 GPR 冲击的价格响应区间都盖住零。</p>
       <p class="note">对照分布是从没有落入这些事件月的完整窗口里，按种子 20261013 抽出最多 120 个。分位高只说明黄金的累计涨幅在普通月份里靠前，不是事件造成的异常。内置日期是事后挑选的，其中多数和中东或石油有关。英国脱欧、朝鲜核试验和佩洛西访台是补上的非中东日期。</p>
-      <p class="note">2026-01-30 的 GC=F 对数跌幅大于 2013-04-15。这是连续期货合约，不是 LBMA 定盘。本构建没有配上现货，不能排除换月跳变。月度收益用月末对月末，会把这个交易日算进 2026 年 1 月。</p>
+      <p class="note">2026-01-30 的 GC=F 对数跌幅大于 2013-04-15。这是连续期货合约，不是 LBMA 定盘。本构建没有配上现货，不能排除换月跳变。月度收益用月末对月末，会把这个交易日算进 2026 年 1 月。页眉里的跳变对照把这一天的对数收益记为 0 后，重算 1 月其余交易日之和。</p>
+      <p class="note">局部投影对每个期限单独回归累计收益，不再把各期系数相加。可以改看地缘行动、地缘威胁，以及上月是否处于高压 GPR 的状态依赖结果。日度累计异常收益是均值调整，估计窗为事件前第 120 到第 20 个交易日。</p>
     </div>
   </details>
-  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V1.0 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a> · <a href="embed.html">嵌入</a></p>
+  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V2.0 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a> · <a href="embed.html">嵌入</a></p>
   <footer id="foot"></footer>
 </main>
 <div id="tip"></div>
@@ -397,7 +405,7 @@ const PRICE_IDS = ["gold","brent","dxy","csi","hsi"];
 const SCORE_IDS = ["brent","dxy","csi","hsi","dgpr"];
 const VAR_IDS = ["dgpr","brent","dxy","gold","csi","hsi"];
 const STORE_KEY = "gpr-haven-custom-v1";
-const state = {eventId:"hormuz_2026", sessions:40, width:12, spec:null, sort:"time", overlay:[], base:"event", lang:"zh"};
+const state = {eventId:"hormuz_2026", sessions:40, width:12, spec:null, sort:"time", overlay:[], base:"event", lang:"zh", irf:"var"};
 
 function defaultSpec() {
   return {
@@ -575,7 +583,11 @@ function analyze(month, width) {
     gprAfter: mean(after.gpr),
   };
 }
+function dailyPack(name) {
+  return LAB.daily && LAB.daily[name] ? LAB.daily[name] : null;
+}
 function indexedPath(pack, eventDate, sessions, baseMode) {
+  if (!pack || !pack.dates || !pack.close) return null;
   const {dates, close} = pack;
   let i0 = 0;
   while (i0 < dates.length && dates[i0] < eventDate) i0++;
@@ -613,10 +625,12 @@ function monthHasAfter(month) {
   return idx >= 0 && idx < LAB.months.length - 1;
 }
 function sessionAfter(date) {
-  return LAB.daily.gold.dates.some(item => item > date);
+  const gold = dailyPack("gold");
+  if (!gold) return true;
+  return gold.dates.some(item => item > date);
 }
 function labVersion() {
-  return (LAB && LAB.meta && LAB.meta.version) ? LAB.meta.version : "V1.0";
+  return (LAB && LAB.meta && LAB.meta.version) ? LAB.meta.version : "V2.0";
 }
 function placeboPack() {
   const raw = LAB.placebo && LAB.placebo[String(state.width)];
@@ -1015,7 +1029,7 @@ function drawOverlay() {
     xTicks: [-state.sessions, 0, state.sessions - 1],
     series: ids.map((id, index) => {
       const event = allEvents().find(item => item.id === id);
-      const path = indexedPath(LAB.daily[anchor], event.date, state.sessions);
+      const path = indexedPath(dailyPack(anchor), event.date, state.sessions);
       return path
         ? {name: eventTitle(event), color: OVERLAY_COLORS[index], width: index === 0 ? 2.6 : 1.5, x: path.tau, y: path.value}
         : {name: eventTitle(event), color: OVERLAY_COLORS[index], x: [], y: []};
@@ -1169,7 +1183,7 @@ function render() {
   }
 
   const pathIds = state.spec.path.includes(anchor) ? state.spec.path : [anchor].concat(state.spec.path);
-  const anchorPath = indexedPath(LAB.daily[anchor], event.date, state.sessions);
+  const anchorPath = indexedPath(dailyPack(anchor), event.date, state.sessions);
   drawChart(document.getElementById("path"), {
     title: eventTitle(event) + (state.lang === "en" ? " price path" : " 前后价格路径"),
     long: (state.lang === "en" ? "Indexed price path around " : "事件前后价格路径：") + eventTitle(event),
@@ -1178,7 +1192,7 @@ function render() {
     yFormat: v => v.toFixed(0),
     xTicks: [-state.sessions, -20, 0, 20, state.sessions - 1],
     series: pathIds.map(name => {
-      const path = indexedPath(LAB.daily[name], event.date, state.sessions);
+      const path = indexedPath(dailyPack(name), event.date, state.sessions);
       return path ? {name: NAMES[name] + (name === anchor ? "（锚）" : ""), color: COLORS[name], width: name === anchor ? 2.6 : 1.25, x: path.tau, y: path.value} : {name: NAMES[name], color: COLORS[name], x:[], y:[]};
     }),
   });
@@ -1196,7 +1210,7 @@ function render() {
     : "暖色是黄金和布伦特，冷色是美元、沪深300和恒生。更粗的线是锚资产。竖线是事件日。当前指数以" + (state.base === "pre" ? "事件前最后收盘" : "事件日收盘") + "为 100。旁边的表给出事件日和窗口末端的指数。";
   fillSimpleTable("path-table", state.lang === "en" ? "Index on the event day and at the end of the window" : "各资产在事件日和窗口末端的指数",
     state.lang === "en" ? ["Asset", "Event day", "End of window"] : ["资产", "事件日", "窗口末端"], pathIds.map(name => {
-    const path = indexedPath(LAB.daily[name], event.date, state.sessions);
+    const path = indexedPath(dailyPack(name), event.date, state.sessions);
     if (!path) return [NAMES[name], "—", "—"];
     const at0 = path.tau.indexOf(0);
     const last = path.value.length ? path.value[path.value.length - 1] : null;
@@ -1207,8 +1221,9 @@ function render() {
   paintOverlayPicks();
   drawOverlay();
 
-  const gprClock = anchorPath || indexedPath(LAB.daily.gold, event.date, state.sessions);
-  const gprMap = new Map(LAB.daily.gpr.dates.map((date, i) => [date, LAB.daily.gpr.close[i]]));
+  const gprClock = anchorPath || indexedPath(dailyPack("gold"), event.date, state.sessions);
+  const gprSeries = dailyPack("gpr");
+  const gprMap = new Map(gprSeries ? gprSeries.dates.map((date, i) => [date, gprSeries.close[i]]) : []);
   drawChart(document.getElementById("gpr"), {
     title: state.lang === "en" ? "Daily GPR" : "GPR 日度水平",
     long: state.lang === "en" ? "Daily geopolitical risk in the same price window" : "同一价格窗口里的 GPR 日度水平",
@@ -1279,7 +1294,20 @@ function render() {
     height: 240, ref: 50, mark: eventIndex, yDigits: 0,
     xFormat: v => LAB.months[Math.round(v)] || "",
     xTicks: LAB.months.map((month, i) => month.endsWith("-01") ? i : null).filter(v => v != null && v % 24 === 0),
-    series: [{name:"避险强度", color:"#1c1915", x: havenX, y: havenY}],
+    series: [{
+      name: state.lang === "en" ? "Haven score" : "避险强度",
+      color:"#1c1915",
+      x: havenX,
+      y: havenY,
+      bandLo: LAB.haven.lo ? havenX.map(i => LAB.haven.lo[i]) : null,
+      bandHi: LAB.haven.hi ? havenX.map(i => LAB.haven.hi[i]) : null,
+    }].concat(LAB.haven.pc1 ? [{
+      name: "PC1",
+      color: "#0072b2",
+      width: 1.1,
+      x: havenX.filter(i => LAB.haven.pc1[i] != null),
+      y: havenX.map(i => LAB.haven.pc1[i]).filter(v => v != null),
+    }] : []),
   });
   paintDots("haven", dotX, eventIndex);
   const havenRows = [];
@@ -1297,6 +1325,7 @@ function render() {
     drawIrf();
   }
   drawCompare();
+  drawCar(event);
   drawBoard(state.width);
   refreshVariableControls();
   document.body.dataset.event = event.id;
@@ -1523,6 +1552,53 @@ function drawIrf() {
       headers, fit.order.map((id, index) => [NAMES[id], fit.cum[index][0].toFixed(2), fit.cum[index][6].toFixed(2), fit.cum[index][12].toFixed(2)]));
     return;
   }
+  const view = irfView();
+  if (view && view.cum) {
+    const keys = Object.keys(view.cum);
+    const labels = {ret_brent:"布伦特", ret_dxy:"美元指数", ret_gold:"黄金", ret_csi:"沪深300", ret_hsi:"恒生"};
+    const labelsEn = {ret_brent:"Brent", ret_dxy:"Dollar index", ret_gold:"Gold", ret_csi:"CSI 300", ret_hsi:"Hang Seng"};
+    const modeName = {
+      lp: en ? "Local projection, total GPR" : "局部投影，总 GPR",
+      act: en ? "Local projection, GPR acts" : "局部投影，地缘行动",
+      threat: en ? "Local projection, GPR threats" : "局部投影，地缘威胁",
+      "state-high": en ? "State-dependent LP, high-GPR lag" : "状态依赖局部投影，上月高压",
+      "state-low": en ? "State-dependent LP, not high-GPR" : "状态依赖局部投影，上月非高压",
+    }[state.irf] || (en ? "Local projection" : "局部投影");
+    document.getElementById("irf-title").textContent = modeName;
+    document.getElementById("irf-cap").textContent = en
+      ? "Each horizon regresses the cumulative log return on a one-standard-deviation shock. The band is a HAC 90% interval. This is not the VAR bootstrap, and it is not structural identification."
+      : "每个期限单独把累计对数收益对 1 个标准差的冲击做回归。阴影是 HAC 90% 区间。这不是 VAR 自助区间，也不是结构识别。";
+    const horizon = (LAB.var.lp && LAB.var.lp.horizon) || keys.map((_, i) => i);
+    keys.forEach(key => {
+      const wrap = document.createElement("div");
+      host.appendChild(wrap);
+      const name = en ? (labelsEn[key] || key) : (labels[key] || key);
+      drawChart(wrap, {
+        title: name,
+        long: (en ? "Cumulative response of " : "累计响应：") + name,
+        descId: "irf-cap",
+        width: 280, height: 160,
+        margin: {l:42, r:8, t:16, b:28},
+        includeZero: true, yDigits: 1,
+        xTicks: [0, 6, 12],
+        series: [{
+          name: name, color:"#0072b2",
+          x: horizon, y: view.cum[key],
+          bandLo: view.lo[key], bandHi: view.hi[key],
+        }],
+      });
+    });
+    const cell = (key, h) => {
+      const mid = view.cum[key][h];
+      if (mid == null) return "—";
+      const lo = view.lo[key][h], hi = view.hi[key][h];
+      const text = Number(mid).toFixed(2);
+      return lo == null ? text : text + " [" + Number(lo).toFixed(2) + ", " + Number(hi).toFixed(2) + "]";
+    };
+    fillSimpleTable("irf-table", en ? "Cumulative local projection at horizons 0, 6 and 12." : "局部投影在 0、6、12 期的累计响应。",
+      headers, keys.map(key => [en ? (labelsEn[key] || key) : (labels[key] || key), cell(key, 0), cell(key, 6), cell(key, 12)]));
+    return;
+  }
   const spec = LAB.var;
   const orderNames = spec.keys.map((key, index) => NAMES[key] || spec.order[index]);
   document.getElementById("irf-title").textContent = en
@@ -1717,8 +1793,38 @@ function writeUrl() {
   const next = "?" + q.toString();
   if (location.search !== next) history.replaceState(null, "", next);
 }
+function irfView() {
+  const lp = LAB.var && LAB.var.lp;
+  if (!lp || state.irf === "var") return null;
+  if (state.irf === "state-high") return lp.state && lp.state.high;
+  if (state.irf === "state-low") return lp.state && lp.state.low;
+  if (state.irf === "act") return lp.act;
+  if (state.irf === "threat") return lp.threat;
+  return lp.total || lp;
+}
+function drawCar(event) {
+  const car = LAB.car && LAB.car.by_event && LAB.car.by_event[event.id];
+  const en = state.lang === "en";
+  const headers = en ? ["Asset", "[-1,+5]", "[-1,+20]", "[0,+40]"] : ["资产", "[-1,+5]", "[-1,+20]", "[0,+40]"];
+  if (!car) {
+    fillSimpleTable("car-table", en ? "CAR is reported for the built-in events." : "累计异常收益只对内置事件计算。", headers, []);
+    return;
+  }
+  const windows = ["m1_p5", "m1_p20", "p0_p40"];
+  const rows = PRICE_IDS.map(name => {
+    const asset = car[name] || {};
+    return [NAMES[name]].concat(windows.map(key => {
+      const cell = asset[key];
+      if (!cell) return "—";
+      const q = cell.q == null ? "" : " q=" + Number(cell.q).toFixed(2);
+      return Number(cell.car).toFixed(2) + " (t=" + Number(cell.t).toFixed(2) + q + ")";
+    }));
+  });
+  fillSimpleTable("car-table", en ? "CAR in percentage points. q is the Benjamini-Hochberg value." : "单位是百分点。q 是 Benjamini–Hochberg 校正值。", headers, rows);
+}
 function verifyCheck() {
-  const path = indexedPath(LAB.daily.gold, LAB.meta.check.date, 60, "pre");
+  const path = indexedPath(dailyPack("gold"), LAB.meta.check.date, 60, "pre");
+  if (!path) return;
   const at = path.tau.indexOf(LAB.meta.check.tau);
   const got = path.value[at];
   const ok = Math.abs(got - LAB.meta.check.gold) < 0.05;
@@ -1801,10 +1907,21 @@ function boot() {
   bindVariableControls();
   const sessionsHost = document.getElementById("seg-sessions");
   const widthHost = document.getElementById("seg-width");
+  const irfHost = document.getElementById("seg-irf");
   const paintSeg = () => {
     const en = state.lang === "en";
     seg(sessionsHost, [{value:20,label:en?"20d":"20日"},{value:40,label:en?"40d":"40日"},{value:60,label:en?"60d":"60日"}], state.sessions, value => { state.sessions = value; render(); });
     seg(widthHost, [{value:6,label:en?"6 months":"6个月"},{value:12,label:en?"12 months":"12个月"},{value:24,label:en?"24 months":"24个月"}], state.width, value => { state.width = value; render(); });
+    if (irfHost) {
+      seg(irfHost, [
+        {value:"var", label:en?"VAR":"VAR"},
+        {value:"lp", label:en?"LP":"局部投影"},
+        {value:"act", label:en?"Acts":"行动"},
+        {value:"threat", label:en?"Threats":"威胁"},
+        {value:"state-high", label:en?"High GPR":"高压"},
+        {value:"state-low", label:en?"Calm":"非高压"},
+      ], state.irf, value => { state.irf = value; window.__heavy = true; drawIrf(); });
+    }
   };
   const oldRender = render;
   render = function () {
@@ -2124,10 +2241,6 @@ async function start() {
     const monthlyResp = await fetch("lab_data_monthly.json");
     if (monthlyResp.ok) LAB = await monthlyResp.json();
     else LAB = await (await fetch("lab_data.json")).json();
-    if (!LAB.daily) {
-      const dailyResp = await fetch("lab_data_daily.json");
-      if (dailyResp.ok) Object.assign(LAB, await dailyResp.json());
-    }
   } catch (err) {
     busy.hidden = false;
     busy.textContent = "没有载入 lab_data_monthly.json / lab_data.json。请打开网站，或在本目录运行本地服务器，不要直接双击 html 文件。";
@@ -2135,6 +2248,15 @@ async function start() {
   }
   busy.hidden = true;
   boot();
+  if (!LAB.daily) {
+    fetch("lab_data_daily.json").then(resp => resp.ok ? resp.json() : null).then(extra => {
+      if (!extra) return;
+      Object.assign(LAB, extra);
+      if (state.spec) state.spec.events = state.spec.events.filter(event => monthHasAfter(event.month) && sessionAfter(event.date));
+      render();
+      verifyCheck();
+    }).catch(() => {});
+  }
   const watch = new IntersectionObserver(entries => {
     if (!entries.some(entry => entry.isIntersecting)) return;
     watch.disconnect();

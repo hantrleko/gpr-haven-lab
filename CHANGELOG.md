@@ -1,5 +1,12 @@
 # 更新记录
 
+## 2026-11-02 · V2.0
+
+- **局部投影**：每个期限直接回归累计收益，不再把各期系数相加。同时给出地缘行动、地缘威胁，以及上月高压与否的状态依赖结果。页面可以切换 VAR 与这几组投影。
+- **事件研究**：内置事件增加日度均值调整 CAR，估计窗为交易日 [-120, -20]，并报告跨事件的 Benjamini–Hochberg q 值。
+- **强度**：滚动避险强度增加权重包络和第一主成分。2026-01-30 黄金期货跳变给出把该日收益记为 0 后的 1 月对照。
+- **工程**：首屏先用月度包渲染，日度包后台加载。`build.py --from-derived` 可从派生月度表面板重建。`fetch_data.py --extended` 可选拉取白银、VIX、美债收益率和 TIPS。页面源码拆到 `src/havenlab/ui/`。论文表写到 `replication/tables_latex.tex`。
+
 ## 2026-10-25 · V1.0
 
 - **可复现**：新增 `fetch_data.py`（GPR 官方 xls、Yahoo chart、akshare 沪深300、可选 FRED LBMA），`data/raw/manifest.json` 校验和。

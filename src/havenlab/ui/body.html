@@ -1,0 +1,218 @@
+<body>
+<main>
+  <header class="brand">
+    <img src="logo.webp" alt="Eugene Finance" width="88" height="88" />
+    <div>
+      <p class="kicker">EF LAB</p>
+      <h1 id="brand-title">EF Lab · 地缘政治风险 × 避险资产实验室</h1>
+      <p class="subtitle" id="brand-sub">Interactive Geopolitical Risk and Safe-Haven Lab · 仅供学习与研究，不构成投资建议</p>
+      <button type="button" class="ghost" id="lang">EN</button>
+    </div>
+  </header>
+  <p class="lede" id="lede"></p>
+  <p class="verdict" id="verdict"></p>
+  <p class="note" id="gold-note"></p>
+  <div class="controls">
+    <div>
+      <label for="event" data-en="Event">事件</label>
+      <select id="event"></select>
+    </div>
+    <div>
+      <label id="lab-sessions" class="hint" data-en="Price window" data-title-en="Each market uses its own sessions. 0 is the event day or the next session. The event-day close is 100 by default." title="各市场用自己的交易日。0 是事件日或其后第一个交易日。默认把事件日收盘设为 100。">价格窗口</label>
+      <div class="seg" id="seg-sessions" role="group" aria-labelledby="lab-sessions"></div>
+    </div>
+    <div>
+      <label id="lab-width" class="hint" data-en="Correlation window" data-title-en="Before is the W months prior to the event month. After starts at the event month and counts W months. The default is 12 because six months is about six points." title="事前是事件月之前的 W 个月，事后从事件月起再数 W 个月。默认 12 个月。6 个月只有大约 6 个数据点，噪声大。">月度相关窗口</label>
+      <div class="seg" id="seg-width" role="group" aria-labelledby="lab-width"></div>
+    </div>
+    <div>
+      <label id="lab-preset" data-en="Paper preset">论文场景</label>
+      <button class="ghost reset-btn" id="reset-spec" type="button" data-en="Restore paper preset">恢复论文设定</button>
+      <button class="ghost" id="copy-link" type="button" data-en="Copy link">复制链接</button>
+    </div>
+    <div class="scenes" id="scenes"></div>
+  </div>
+  <p id="busy" class="busy" hidden>正在按当前事件和窗口重算…</p>
+  <details class="fold" id="custom-panel">
+    <summary data-en="Custom events and variables">自定事件与变量</summary>
+    <div class="fold-body">
+    <div class="custom-grid">
+      <div>
+        <h3 data-en="Custom event">自定事件</h3>
+        <p class="note" data-en="Use YYYY-MM-DD inside the sample. Example: 2022-02-24, named “Full-scale invasion of Ukraine”.">日期用 YYYY-MM-DD，并且要落在样本内。例：2022-02-24，名称写「俄乌冲突全面升级」。</p>
+        <div class="field"><label for="ev-name" data-en="Name">名称</label><input id="ev-name" type="text" maxlength="40" data-ph-en="Full-scale invasion of Ukraine" placeholder="俄乌冲突全面升级" /></div>
+        <div class="field"><label for="ev-date" data-en="Date">日期</label><input id="ev-date" type="date" /></div>
+        <div class="field"><label for="ev-note" data-en="Note">备注</label><input id="ev-note" type="text" maxlength="160" data-ph-en="Optional. Say which news day this anchor is." placeholder="可选。写清这个日期锚的是哪一天的新闻" /></div>
+        <button class="ghost" id="ev-add" type="button" style="margin-left:0" data-en="Add and view">加入并查看</button>
+        <p class="note" id="ev-msg"></p>
+        <div id="ev-list"></div>
+      </div>
+      <div>
+        <h3 data-en="Custom variables">自定变量</h3>
+        <div class="field">
+          <label for="anchor" class="hint" data-en="Anchor" data-title-en="Correlations and the haven score are measured against this series." title="路径以锚资产为基准。相关和避险强度都相对这个序列。">锚资产</label>
+          <select id="anchor"></select>
+        </div>
+        <p class="note" data-en="Series drawn on the price path. The anchor stays on and uses a thicker line.">价格路径里画哪些序列。锚资产始终保留，并用更粗的线。</p>
+        <div id="path-picks"></div>
+        <p class="note" style="margin-top:10px" data-en="Correlations against the anchor. Hedge: a negative correlation raises the score. Comove: a positive correlation raises it. Watch: drawn, but left out of the score.">和锚资产做相关。对冲：负相关加分。同向：正相关加分。对照：只画相关，不进强度。</p>
+        <div id="score-picks"></div>
+        <p class="note" style="margin-top:10px" data-en="Variables and order for the impulse response. The first one is shocked. A custom order is a point estimate. Only the paper order has a 90% band.">脉冲响应的变量和顺序。第一位是被冲击的变量。自定顺序只给点估计，论文设定才有 90% 区间。</p>
+        <p class="note" data-en="Three orderings are robustness checks. Only the paper order has a 90% band.">三种排序是稳健性对照。只有论文顺序带 90% 区间。</p>
+        <div class="scenes" id="var-presets"></div>
+        <div id="var-order"></div>
+      </div>
+    </div>
+    </div>
+  </details>
+  <div class="readout" id="readout"></div>
+  <div class="stats" id="stats"></div>
+  <div class="meter" aria-hidden="true"><i id="meter-fill"></i></div>
+  <p class="cap" id="meter-label"></p>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 data-en="Event comparison">事件对比</h2>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-compare">SVG</button>
+        <button class="ghost" type="button" id="dl-compare-png">PNG</button>
+        <button class="ghost" type="button" id="dl-csv">CSV</button>
+      </span>
+    </div>
+    <div id="compare" class="scroll-x"></div>
+    <table id="compare-table" class="data-table"></table>
+    <div class="scenes" id="compare-sort"></div>
+    <p class="cap" id="compare-cap">每根柱是当前窗口里锚资产累计对数收益减去对照资产。选中的事件用更深的颜色。</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 data-en="Price paths around the event">事件前后价格路径</h2>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-path">SVG</button>
+        <button class="ghost" type="button" id="dl-path-png">PNG</button>
+        <button class="ghost" type="button" id="base-event" data-en="Event day = 100">事件日=100</button>
+        <button class="ghost" type="button" id="base-pre" data-en="Pre-event = 100">事件前=100</button>
+        <button class="ghost" type="button" id="dl-caption" data-en="Copy caption">复制图注</button>
+        <a class="ghost" id="card-link" href="cards/hormuz_2026.jpg">竖版卡片</a>
+      </span>
+    </div>
+    <div id="path"></div>
+    <div class="legend" id="path-legend"></div>
+    <div class="scenes" id="quick-assets"></div>
+    <p class="cap" id="path-cap"></p>
+    <table id="path-table" class="data-table"></table>
+    <p class="note" data-en="Tick at most two other events to overlay the anchor path.">勾选最多两个其他事件，和当前事件的锚资产路径叠在一起。</p>
+    <div class="scenes" id="overlay-picks"></div>
+    <div id="overlay"></div>
+    <p class="note" id="caption-out"></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 data-en="Daily GPR in the same window">同一窗口里的 GPR 日度水平</h2>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-gpr">SVG</button>
+        <button class="ghost" type="button" id="dl-gpr-png">PNG</button>
+      </span>
+    </div>
+    <div id="gpr"></div>
+    <table id="gpr-table" class="data-table"></table>
+    <p class="cap" id="gpr-cap" data-en="GPRD is read on gold trading days. 0 is the event day or the next session. The axis is index points, not a percent change.">GPRD 按黄金交易日取值。0 是事件日或其后第一个交易日。纵轴是指数点，不是涨跌幅。</p>
+  </section>
+
+  <div class="split">
+    <section class="panel">
+      <div class="panel-head">
+        <h2 data-en="Correlations before and after">事件前后相关系数</h2>
+        <span class="dl">
+          <button class="ghost" type="button" id="dl-corr">SVG</button>
+          <button class="ghost" type="button" id="dl-corr-png">PNG</button>
+        </span>
+      </div>
+      <div id="corr" class="scroll-x"></div>
+      <table id="corr-table" class="data-table"></table>
+      <p class="cap" id="corr-cap"></p>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2 data-en="Haven score in this window">这个窗口的避险强度</h2></div>
+      <div id="parts"></div>
+      <p class="cap" id="haven-def" data-en="This score is defined by the site: an equal weight of three correlations. It is not a standard index from the literature. The table below changes the weights and swaps in the GPR act and threat sub-indices. 60 and 45 are color cutoffs only.">这三项是本实验室自定的描述性指标，不是文献里的标准避险指数。下面给出换加权和换 GPR 子指数的对照。60 和 45 只是着色线。</p>
+      <div id="robust"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 data-en="36-month rolling haven score">36 个月滚动避险强度</h2>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-haven">SVG</button>
+        <button class="ghost" type="button" id="dl-haven-png">PNG</button>
+      </span>
+    </div>
+    <div id="haven"></div>
+    <div class="legend">
+      <span><i class="swatch" style="background:#0072b2"></i>高压且强度 ≥ 60</span>
+      <span><i class="swatch" style="background:#d55e00"></i>高压且强度 &lt; 45</span>
+      <span><i class="swatch" style="background:#e69f00"></i>高压、强度居中</span>
+      <span><i class="swatch" style="background:#8a8478"></i>GPR 未处在自身过去 60 个月的上四分位</span>
+    </div>
+    <p class="cap" id="haven-cap" data-en="The vertical line is the event month. A high-pressure month is one where GPR is above its own trailing 60-month 75th percentile, so the rule does not use future data. Blue means high pressure and a score of at least 60. Orange means high pressure and a score below 45. Gold is high pressure in between. Gray means GPR is outside that upper quartile.">竖线是当前事件月。高压用 GPR 自身的滚动分位，不用全样本分位，因此没有用到未来信息。</p>
+    <table id="haven-table" class="data-table"></table>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="heat-title">黄金滚动相关，按季度</h2>
+      <span class="dl">
+        <button class="ghost" type="button" id="dl-heat">SVG</button>
+        <button class="ghost" type="button" id="dl-heat-png">PNG</button>
+      </span>
+    </div>
+    <div id="heat" style="overflow-x:auto"></div>
+    <table id="heat-table" class="data-table"></table>
+    <p class="cap" id="heat-cap" data-en="Each cell is a 36-month correlation ending in that quarter. Blue is negative, orange is positive. The event quarter has a black outline. The table beside the chart is that quarter only.">每一格是止于该季末的 36 个月相关系数。蓝色偏负，橙色偏正。当前事件所在季度用黑框标出。旁边的表只列出该季度。</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="irf-title">GPR 冲击的累计脉冲响应</h2>
+      <button class="ghost" type="button" id="dl-irf" data-en="Download SVG">下载 SVG</button>
+    </div>
+    <div class="seg" id="seg-irf"></div>
+    <div class="irf-grid" id="irf"></div>
+    <p id="dl-status" class="note" role="status"></p>
+    <table id="irf-table" class="data-table"></table>
+    <p class="cap" id="irf-cap"></p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2 data-en="Daily cumulative abnormal returns">日度累计异常收益</h2></div>
+    <div style="overflow-x:auto"><table id="car-table" class="data-table"></table></div>
+    <p class="cap" id="car-cap" data-en="Mean-adjusted CAR. The estimation window is trading days [-120, -20]. q is a Benjamini-Hochberg value across the built-in events for that asset and window. This is not a market-model residual and it is not a causal effect.">均值调整的累计异常收益。估计窗是事件前第 120 到第 20 个交易日。q 是同一资产、同一窗口里，对全部内置事件做 Benjamini–Hochberg 校正后的值。不是市场模型残差，也不是因果效应。</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2 data-en="All events, same window">全部事件，同一套窗口</h2></div>
+    <div style="overflow-x:auto"><table id="board"></table></div>
+    <p class="cap" data-en="Click a row to switch events. A positive gold minus CSI 300 number means gold's cumulative log return was higher in that window.">点击一行就切换事件。黄金−沪深300 为正，表示这段窗口里黄金的累计对数收益更高。</p>
+  </section>
+  <details class="fold">
+    <summary data-en="Method">方法说明</summary>
+    <div class="fold-body" id="method-body">
+      <p>GPR 用 Caldara–Iacoviello 日度 GPRD，月内取均值。2026-10-13 从 matteoiacoviello.com 下载。黄金是 COMEX 期货 GC=F，布伦特是 ICE 期货 BZ=F，美元是洲际美元指数 DX-Y.NYB，恒生是 Yahoo ^HSI。沪深300是新浪 sh000300 价格指数，不是中证公司的官方归档。</p>
+      <p class="note">收益是月末最后一笔收盘的对数差分再乘 100，没有减去无风险利率。期货月度收益含换月。各市场的月末交易日不必是同一天。</p>
+      <p class="note">价格窗口按各市场自己的交易日计数。0 是事件日或其后第一个交易日，所以周末发生的冲击会落在 t = -1 和 t = 0 之间。相关窗口的事前不含事件月，事后从事件月起连续数 W 个月。样本末端会把事后窗口截断。</p>
+      <p class="note">避险强度，论文设定：先算三项。权益对冲 E = 50 × (1 − (ρ(黄金,沪深300) + ρ(黄金,恒生)) / 2)；GPR 联动 G = 50 × (1 + ρ(黄金, ΔGPR))；美元对冲 D = 50 × (1 − ρ(黄金, 美元指数))。强度 = (E + G + D) / 3。50 是这三项相关都为 0。自定变量后，强度改为每个「对冲」项 50×(1−ρ) 与每个「同向」项 50×(1+ρ) 的等权平均。百分位是当前分数在 36 个月滚动强度历史分布中的位置。</p>
+      <p class="note">价格按各市场自己的交易日对齐，不对齐到同一个日历日，也不跨市场填充缺失。月末收益用该月最后一个可得收盘。日度路径里，事件日是事件日期当天或其后第一个交易日。归一化可以选择该日收盘 = 100，或事件前最后一个收盘 = 100。</p>
+      <p class="note">论文设定的脉冲响应是六变量月度 VAR，滞后由 AIC 在 1 至 3 阶里选出，本样本为 1 阶。Cholesky 顺序：GPR 变动、布伦特、美元、黄金、沪深300、恒生。图中是 1 个标准差正向 GPR 冲击的累计响应，阴影是 200 次残差自助的 90% 区间。自定顺序只重估 1 阶点估计，没有区间。这是递归排序，不是结构因果。</p>
+      <p class="note">短窗口相关不稳定。打开页面默认用 12 个月；6 个月大约只有 6 个点，留给需要对照的时候。苏莱曼尼之后的 6 个月穿过 2020 年 3 月疫情。2026 年 3 月霍尔木兹的日期，是用路透 2026-03-26 关于海峡中断的报道回溯到 3 月 2 日，本实验室没有逐条核对原始电讯。全样本 GPR 冲击的价格响应区间都盖住零。</p>
+      <p class="note">对照分布是从没有落入这些事件月的完整窗口里，按种子 20261013 抽出最多 120 个。分位高只说明黄金的累计涨幅在普通月份里靠前，不是事件造成的异常。内置日期是事后挑选的，其中多数和中东或石油有关。英国脱欧、朝鲜核试验和佩洛西访台是补上的非中东日期。</p>
+      <p class="note">2026-01-30 的 GC=F 对数跌幅大于 2013-04-15。这是连续期货合约，不是 LBMA 定盘。本构建没有配上现货，不能排除换月跳变。月度收益用月末对月末，会把这个交易日算进 2026 年 1 月。页眉里的跳变对照把这一天的对数收益记为 0 后，重算 1 月其余交易日之和。</p>
+      <p class="note">局部投影对每个期限单独回归累计收益，不再把各期系数相加。可以改看地缘行动、地缘威胁，以及上月是否处于高压 GPR 的状态依赖结果。日度累计异常收益是均值调整，估计窗为事件前第 120 到第 20 个交易日。</p>
+    </div>
+  </details>
+  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V2.0 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a> · <a href="embed.html">嵌入</a></p>
+  <footer id="foot"></footer>
+</main>
+<div id="tip"></div>

@@ -1,0 +1,116 @@
+:root {
+    --bg: #f3f0e8;
+    --paper: #fbfaf6;
+    --ink: #1c1915;
+    --muted: #3a342c;
+    --line: #ddd6c8;
+    --accent: #1f4b73;
+    --blue: #0072b2;
+    --orange: #d55e00;
+    --gold: #c48a00;
+    --green: #007a5a;
+    --pink: #a85b86;
+    --calm: #8a8478;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 64px; }
+  h1 { font-size: 28px; line-height: 1.25; font-weight: 650; margin: 0 0 8px; }
+  p { margin: 0; }
+  .lede { color: var(--muted); max-width: 46rem; font-size: 14px; }
+  .verdict { max-width: 46rem; margin-top: 10px; font-size: 16px; }
+  label { display: block; color: var(--muted); margin-bottom: 4px; }
+  .note, .cap, .legend, .site-footer, footer, th, .pick, .var-row, .ev-item, .busy { font-size: 14px; }
+  h2 { font-size: 18px; font-weight: 650; margin: 0; overflow-wrap: anywhere; }
+  .controls, .panel, .readout, table { background: var(--paper); border: 1px solid var(--line); }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px 28px; padding: 14px 16px; margin: 18px 0; }
+  label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+  select, input[type="date"], input[type="text"] {
+    font: inherit; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--line); padding: 6px 8px; min-width: 0;
+  }
+  h3 { font-size: 15px; margin: 0 0 8px; }
+  .custom-grid { display: grid; grid-template-columns: 0.9fr 1.2fr; gap: 28px; }
+  .field { margin-bottom: 8px; }
+  .field input[type="text"] { width: 100%; }
+  .pick, .var-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 14px; }
+  .pick select, .var-row select { min-width: 88px; }
+  .ev-item { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .mini { padding: 2px 7px; }
+  .seg { display: flex; }
+  .seg button, .ghost {
+    font: inherit; background: var(--paper); color: var(--ink);
+    border: 1px solid var(--line); padding: 6px 10px; cursor: pointer;
+  }
+  .seg button + button { margin-left: -1px; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .readout { padding: 12px 14px; border-left: 3px solid var(--accent); margin-bottom: 14px; }
+  .readout.warn { border-left-color: var(--orange); }
+  .readout.bad { border-left-color: #9a3412; }
+  .note { margin-top: 6px; }
+  .cap { margin-top: 6px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 6px; }
+  .panel { padding: 14px 14px 10px; margin: 0 0 14px; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 8px 0 14px; }
+  .stat { background: #fff; border: 1px solid #c5d0dc; padding: 10px 12px; }
+  .stat:first-child { background: #f3f7fb; border-color: var(--accent); }
+  .stat b { display: block; font-size: 22px; font-weight: 650; letter-spacing: -0.02em; }
+  .stat span { color: var(--muted); font-size: 14px; }
+  .scroll-x { overflow-x: auto; }
+  .data-table { margin-top: 8px; }
+  #tip {
+    position: fixed; z-index: 5; pointer-events: none; display: none;
+    background: var(--ink); color: #fff; font-size: 14px; padding: 4px 7px;
+  }
+  .swatch { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; }
+  svg { width: 100%; height: auto; display: block; }
+  #heat svg { width: auto; max-width: none; height: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table caption { caption-side: bottom; text-align: left; color: var(--muted); font-size: 14px; padding-top: 6px; font-weight: 400; }
+  th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 14px; }
+  tr.click { cursor: pointer; }
+  tr.active td { background: #e7eef5; }
+  .ghost { margin-left: 8px; }
+  a.ghost { display: inline-block; text-decoration: none; color: inherit; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .irf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  footer, .site-footer { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  .brand { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
+  .brand img { width: 88px; height: auto; background: #fff; }
+  .kicker { margin: 0 0 2px; font-size: 14px; letter-spacing: 0.12em; color: var(--accent); font-weight: 700; }
+  .subtitle { color: var(--muted); font-size: 14px; max-width: 40rem; }
+  .controls { position: relative; }
+  .hint { border-bottom: 1px dotted var(--muted); cursor: help; }
+  .scenes { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+  .reset-btn { border-color: var(--accent); color: var(--accent); margin-left: 0; }
+  .busy { margin: -6px 0 12px; color: var(--accent); font-size: 14px; }
+  .busy[hidden] { display: none; }
+  .meter { height: 8px; background: #eceae4; margin-top: 8px; }
+  .meter i { display: block; height: 100%; width: 0; }
+  details.fold { background: var(--paper); border: 1px solid var(--line); margin: 0 0 14px; }
+  details.fold summary { cursor: pointer; padding: 12px 14px; font-weight: 650; }
+  details.fold .fold-body { padding: 0 14px 14px; }
+  .site-footer a { color: var(--accent); }
+  .dl { display: flex; gap: 6px; }
+  .dl .ghost { margin-left: 0; }
+  @media (max-width: 800px) {
+    main { padding: 14px 12px 48px; }
+    h1 { font-size: 22px; }
+    .brand { align-items: flex-start; }
+    .brand img { width: 64px; }
+    .stats { grid-template-columns: 1fr 1fr; }
+    .split, .irf-grid, .custom-grid { grid-template-columns: 1fr; }
+    .panel-head { flex-direction: column; align-items: flex-start; }
+    .controls { position: sticky; top: 0; z-index: 4; }
+    .scroll-x { margin: 0 -4px; }
+    .scroll-x svg { min-width: 720px; }
+    #heat svg { width: auto; min-width: 720px; }
+  }

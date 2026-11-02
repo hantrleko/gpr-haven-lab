@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import shutil
 import sys
@@ -15,6 +16,8 @@ sys.path.insert(0, str(ROOT / "src"))
 from havenlab.cards import copy_cards, export_cards
 from havenlab.engine import build_lab, canvas_payload, split_web_payload, web_payload, write_tables
 from havenlab.figures import export_all
+from havenlab.latex import write_latex
+from havenlab.ui_assemble import load_page
 from havenlab.version import API_VERSION, LAB_VERSION
 
 
@@ -59,8 +62,15 @@ def _write_api_manifest(docs_dir: Path, payload: dict) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Rebuild the GPR haven lab.")
+    parser.add_argument(
+        "--from-derived",
+        action="store_true",
+        help="Rebuild monthly results from replication/panel_monthly.csv when raw quotes are absent.",
+    )
+    args = parser.parse_args()
     print(f"Building {LAB_VERSION} panel, haven score, and VAR...")
-    lab = build_lab()
+    lab = build_lab(from_derived=args.from_derived)
     summary = write_tables(lab, ROOT / "output")
     lab["summary"] = summary
     panel = lab["panel"]
@@ -76,7 +86,7 @@ def main() -> None:
     print("Exporting figures...")
     export_all(lab, ROOT / "figs")
     payload = web_payload(lab)
-    template = (ROOT / "src" / "havenlab" / "template.html").read_text(encoding="utf-8")
+    template = load_page(ROOT)
     app = ROOT / "app"
     docs = ROOT / "docs"
     docs.mkdir(parents=True, exist_ok=True)
@@ -109,6 +119,10 @@ def main() -> None:
     shutil.copy2(ROOT / "output" / "panel_monthly.csv", rep / "panel_monthly.csv")
     shutil.copy2(ROOT / "output" / "event_window_summary.csv", rep / "event_window_summary.csv")
     shutil.copy2(ROOT / "output" / "provenance.json", rep / "provenance.json")
+    car_csv = ROOT / "output" / "event_daily_car.csv"
+    if car_csv.exists():
+        shutil.copy2(car_csv, rep / "event_daily_car.csv")
+    write_latex(summary, car_csv, rep / "tables_latex.tex")
     print(f"Page {app / 'index.html'}")
 
 

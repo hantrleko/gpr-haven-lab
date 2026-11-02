@@ -6,6 +6,9 @@ import sys
 import unittest
 from pathlib import Path
 
+import json
+
+import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,12 +16,17 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from havenlab.engine import (  # noqa: E402
     SAMPLE_END,
+    _panel_from_derived,
+    add_rolling,
     build_panel,
+    daily_event_study,
     event_window,
+    fit_local_projection,
     gold_daily_jumps,
+    gold_jump_sensitivity,
+    local_projection_response,
     placebo_bundle,
     placebo_sample,
-    web_payload,
 )
 from havenlab.version import LAB_VERSION
 from havenlab.events import EVENTS  # noqa: E402
@@ -76,12 +84,17 @@ class BenchmarkTest(unittest.TestCase):
         self.assertLessEqual(rank, 1)
 
     def test_web_payload_version(self):
-        from havenlab.engine import build_lab
-
-        payload = web_payload(build_lab())
+        path = ROOT / "docs" / "lab_data_monthly.json"
+        if not path.exists():
+            self.skipTest("run build.py before checking the published payload")
+        payload = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(payload["meta"]["version"], LAB_VERSION)
         self.assertIn("windows", payload)
-        self.assertIn("lp", payload["var"])
+        self.assertIn("state", payload["var"]["lp"])
+        self.assertIn("act", payload["var"]["lp"])
+        self.assertIn("car", payload)
+        self.assertIn("gold", payload["car"]["by_event"]["hormuz_2026"])
+        self.assertNotIn("daily", payload)
 
     def test_non_mideast_events_exist(self):
         ids = {event["id"] for event in EVENTS}
@@ -91,6 +104,36 @@ class BenchmarkTest(unittest.TestCase):
             self.assertTrue(event["name_en"])
             self.assertNotIn("黄金下跌", event["name"])
             self.assertNotIn("黄金上涨", event["name"])
+
+    def test_local_projection_is_not_summed_across_horizons(self):
+        rng = np.random.default_rng(0)
+        shock = pd.Series(rng.normal(size=160))
+        ret = pd.Series(0.4 * shock.to_numpy() + rng.normal(scale=0.05, size=160))
+        out = local_projection_response(ret, shock, horizon=2, scale=1.0, min_n=30)
+        self.assertAlmostEqual(out["cum"][0], 0.4, delta=0.08)
+        self.assertAlmostEqual(out["cum"][2], 0.4, delta=0.15)
+        self.assertLess(abs(out["cum"][2]), 0.9)
+
+    def test_daily_car_and_gold_jump(self):
+        car = daily_event_study(self.daily)
+        hormuz = car["by_event"]["hormuz_2026"]["gold"]["m1_p5"]
+        self.assertEqual(hormuz["n"], 7)
+        self.assertIn("q", hormuz)
+        rolled = add_rolling(self.panel)
+        self.assertTrue(np.isfinite(rolled["haven_lo"]).any())
+        self.assertTrue(np.isfinite(rolled["haven_pc1"]).any())
+        jump = gold_jump_sensitivity(self.panel, self.daily)
+        self.assertEqual(jump["date"], "2026-01-30")
+        self.assertLess(jump["january_sum_daily"], jump["january_ex_jump"])
+        lp = fit_local_projection(rolled, horizon=1)
+        self.assertIn("high", lp["state"])
+        self.assertIsNotNone(lp["state"]["high"])
+
+    def test_derived_panel_keeps_the_pinned_sample(self):
+        panel = _panel_from_derived(ROOT / "replication" / "panel_monthly.csv")
+        self.assertEqual(str(panel.index[0]), "2007-08")
+        self.assertEqual(str(panel.index[-1]), "2026-09")
+        self.assertEqual(len(panel), len(self.panel))
 
 
 if __name__ == "__main__":

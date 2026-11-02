@@ -2,7 +2,7 @@
 
 在线页面：<https://hantrleko.github.io/gpr-haven-lab/>
 
-当前版本 **V1.0**。每日改动记在 `CHANGELOG.md`。
+当前版本 **V2.0**。每日改动记在 `CHANGELOG.md`。
 
 交互页面用来对照事件叙事。`figs/` 里的 PDF 是同一套定义导出的图。页面右上角可以切到英文。选中的事件和窗口写在网址里，例如 `https://hantrleko.github.io/gpr-haven-lab/?e=ukraine_2022&w=12&d=40`。论文配套说明见 [`docs/paper.html`](docs/paper.html)。
 
@@ -12,7 +12,7 @@
 
 数据不是自动日更。样本终点固定在 `2026-09`（`SAMPLE_END`）。换一天运行 `build.py` 也不会把样本延到下一个月，除非改这个常数。
 
-## 重跑（V1.0 推荐流程）
+## 重跑（V2.0 推荐流程）
 
 ```powershell
 pip install -r requirements.txt
@@ -22,7 +22,9 @@ python -m unittest discover -s tests -p "test_*.py"
 python scripts/check.py
 ```
 
-`fetch_data.py` 把原始文件写到 `data/raw/`（不进 git）。`build.py` 生成页面、`figs/`、`replication/` 派生表和 `docs/api/v1/manifest.json`。
+`fetch_data.py` 把原始文件写到 `data/raw/`（不进 git）。`python fetch_data.py --extended` 额外拉取白银、VIX、10 年美债收益率和 10 年 TIPS。`build.py` 生成页面、`figs/`、`replication/` 派生表、LaTeX 三线表和 `docs/api/v1/manifest.json`。没有原始行情时，可以用 `python build.py --from-derived`，从 `replication/panel_monthly.csv` 重建月度结果。
+
+页面源码在 `src/havenlab/ui/`。`build.py` 会把这四段拼回 `template.html`。
 
 若你已有 V0.5 时代的六个 raw 文件，可跳过 `fetch_data.py`，直接 `build.py`。
 
@@ -42,11 +44,12 @@ python scripts/check.py
 
 ## 序列与方法
 
-与 V0.5 相同：GPR 月内均值、月末对数收益×100、自定避险强度、递归 VAR + 自助区间。V1.0 新增：
+与 V0.5 相同：GPR 月内均值、月末对数收益×100、自定避险强度、递归 VAR + 自助区间。V1.0 起保留非重叠安慰剂、Fisher 区间和局部投影。V2.0 新增：
 
-- 安慰剂：**非重叠**普通月份窗口为默认分位；重叠池在 `placebo.<w>.overlapping`。
-- 相关变化：`windows.<event>.<w>.corr_gold_csi` 含近似 90% 区间。
-- 脉冲：`var.lp` 为 GPR 冲击的局部投影累计响应（描述性，非结构因果）。
+- 局部投影按期限直接回归累计收益，并给出地缘行动、地缘威胁，以及上月是否高压的状态依赖结果。页面脉冲图可以切换。
+- 日度均值调整累计异常收益，估计窗为交易日 [-120, -20]，并给出跨事件的 Benjamini–Hochberg q 值。
+- 避险强度附带权重包络和第一主成分。
+- 2026-01-30 黄金期货跳变有剔除该日之后的 1 月对照。
 
 ## 图与输出
 

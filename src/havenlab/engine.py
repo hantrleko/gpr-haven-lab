@@ -24,6 +24,7 @@ sum approximates the percent change in the price level.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -285,6 +286,56 @@ def add_rolling(panel: pd.DataFrame) -> pd.DataFrame:
     out["haven_gpr"] = gpr_link
     out["haven_dollar"] = dollar
     out["high_gpr"] = high
+    lo = np.full(n, np.nan)
+    hi = np.full(n, np.nan)
+    for i in range(n):
+        if not np.isfinite(score[i]):
+            continue
+        bounds = _haven_weight_envelope(equity[i], gpr_link[i], dollar[i])
+        if bounds is None:
+            continue
+        lo[i], hi[i] = bounds
+    out["haven_lo"] = lo
+    out["haven_hi"] = hi
+    out["haven_pc1"] = _haven_pc1(equity, gpr_link, dollar, score)
+    return out
+
+
+def _haven_weight_envelope(equity: float, gpr_link: float, dollar: float) -> tuple[float, float] | None:
+    """Score range when each of the three legs keeps a weight in [0.15, 0.70]."""
+    if not all(np.isfinite(v) for v in (equity, gpr_link, dollar)):
+        return None
+    low, high = 1e9, -1e9
+    for a in np.arange(0.15, 0.701, 0.05):
+        for b in np.arange(0.15, 0.701, 0.05):
+            c = 1.0 - float(a) - float(b)
+            if c < 0.149 or c > 0.701:
+                continue
+            value = float(a) * equity + float(b) * gpr_link + c * dollar
+            low = min(low, value)
+            high = max(high, value)
+    if not np.isfinite(low):
+        return None
+    return low, high
+
+
+def _haven_pc1(equity: np.ndarray, gpr_link: np.ndarray, dollar: np.ndarray, score: np.ndarray) -> np.ndarray:
+    """First principal component of the three legs, scaled to sit near the 0–100 score."""
+    comp = np.column_stack([equity, gpr_link, dollar])
+    out = np.full(comp.shape[0], np.nan)
+    mask = np.isfinite(comp).all(axis=1) & np.isfinite(score)
+    if int(mask.sum()) < 30:
+        return out
+    z = comp[mask]
+    std = z.std(axis=0, ddof=1)
+    std[std < 1e-8] = 1.0
+    z = (z - z.mean(axis=0)) / std
+    _u, _s, vt = np.linalg.svd(z, full_matrices=False)
+    mapped = z @ vt[0]
+    if np.corrcoef(mapped, score[mask])[0, 1] < 0:
+        mapped = -mapped
+    zz = (mapped - mapped.mean()) / (mapped.std(ddof=1) or 1.0)
+    out[np.flatnonzero(mask)] = np.clip(50.0 + 15.0 * zz, 0.0, 100.0)
     return out
 
 
@@ -463,38 +514,274 @@ def fit_var(panel: pd.DataFrame) -> dict:
     }
 
 
-def fit_local_projection(panel: pd.DataFrame, horizon: int = VAR_HORIZON) -> dict:
-    """Horizon-by-horizon OLS of cumulative returns on the GPR shock (HAC SE)."""
+LP_KEYS = ["ret_brent", "ret_dxy", "ret_gold", "ret_csi", "ret_hsi"]
+CAR_WINDOWS = {"m1_p5": (-1, 5), "m1_p20": (-1, 20), "p0_p40": (0, 40)}
+
+
+def _two_sided_normal_p(stat: float) -> float:
+    return float(math.erfc(abs(stat) / math.sqrt(2.0)))
+
+
+def _bh_qvalues(pvals: np.ndarray) -> np.ndarray:
+    m = int(pvals.size)
+    if m == 0:
+        return pvals
+    order = np.argsort(pvals)
+    ranked = pvals[order]
+    q = np.empty(m, dtype=float)
+    running = 1.0
+    for i in range(m - 1, -1, -1):
+        running = min(running, float(ranked[i]) * m / (i + 1))
+        q[i] = running
+    out = np.empty(m, dtype=float)
+    out[order] = np.clip(q, 0.0, 1.0)
+    return out
+
+
+def local_projection_response(
+    target: pd.Series,
+    shock: pd.Series,
+    horizon: int = VAR_HORIZON,
+    controls: pd.DataFrame | None = None,
+    scale: float = 1.0,
+    min_n: int = 40,
+) -> dict[str, list]:
+    """Direct regression of the h-step cumulative outcome on the shock.
+
+    The dependent variable at horizon h is already the sum of outcomes from 0
+    through h. The coefficient is the cumulative response. It is not added to
+    the previous horizon.
+    """
     import statsmodels.api as sm
     from statsmodels.regression.linear_model import OLS
 
-    frame = panel[["dgpr", "ret_brent", "ret_dxy", "ret_gold", "ret_csi", "ret_hsi"]].dropna().astype(float)
-    shock = frame["dgpr"]
-    keys = ["ret_brent", "ret_dxy", "ret_gold", "ret_csi", "ret_hsi"]
-    cum: dict[str, list[float]] = {key: [] for key in keys}
-    lo: dict[str, list[float]] = {key: [] for key in keys}
-    hi: dict[str, list[float]] = {key: [] for key in keys}
-    for key in keys:
-        running = 0.0
-        for h in range(horizon + 1):
-            if h == 0:
-                target = frame[key]
-            else:
-                target = frame[key].rolling(h + 1).sum().shift(-h)
-            reg = pd.concat([target.rename("y"), shock.rename("shock")], axis=1).dropna()
-            if len(reg) < 40:
-                cum[key].append(round(running, 4))
-                lo[key].append(round(running, 4))
-                hi[key].append(round(running, 4))
+    cum: list = []
+    lo: list = []
+    hi: list = []
+    for h in range(horizon + 1):
+        y = target if h == 0 else target.rolling(h + 1).sum().shift(-h)
+        pieces = [y.rename("y"), shock.rename("shock")]
+        if controls is not None:
+            pieces.append(controls)
+        reg = pd.concat(pieces, axis=1).dropna()
+        xcols = ["shock"] + [col for col in reg.columns if col not in ("y", "shock")]
+        if len(reg) < min_n or float(reg["shock"].std(ddof=1) or 0) < 1e-8:
+            cum.append(None)
+            lo.append(None)
+            hi.append(None)
+            continue
+        model = OLS(reg["y"], sm.add_constant(reg[xcols])).fit(
+            cov_type="HAC",
+            cov_kwds={"maxlags": max(1, h + 1)},
+        )
+        beta = float(model.params["shock"]) * scale
+        se = float(model.bse["shock"]) * abs(scale)
+        cum.append(round(beta, 4))
+        lo.append(round(beta - 1.645 * se, 4))
+        hi.append(round(beta + 1.645 * se, 4))
+    return {"cum": cum, "lo": lo, "hi": hi}
+
+
+def _pack_lp(frame: pd.DataFrame, shock: pd.Series, scale: float, controls: pd.DataFrame | None, horizon: int) -> dict:
+    packed = {}
+    for key in LP_KEYS:
+        packed[key] = local_projection_response(frame[key], shock, horizon, controls, scale)
+    return {
+        "cum": {key: packed[key]["cum"] for key in LP_KEYS},
+        "lo": {key: packed[key]["lo"] for key in LP_KEYS},
+        "hi": {key: packed[key]["hi"] for key in LP_KEYS},
+        "scale": round(float(scale), 4),
+    }
+
+
+def fit_local_projection(panel: pd.DataFrame, horizon: int = VAR_HORIZON) -> dict:
+    """Local projections of cumulative returns on a one-standard-deviation GPR move."""
+    needed = ["dgpr", "dgpr_act", "dgpr_threat", *LP_KEYS]
+    frame = panel[needed].dropna().astype(float)
+    total_sd = float(frame["dgpr"].std(ddof=1))
+    act_sd = float(frame["dgpr_act"].std(ddof=1) or 1.0)
+    threat_sd = float(frame["dgpr_threat"].std(ddof=1) or 1.0)
+    total = _pack_lp(frame, frame["dgpr"], total_sd, None, horizon)
+    act = _pack_lp(frame, frame["dgpr_act"], act_sd, None, horizon)
+    threat = _pack_lp(frame, frame["dgpr_threat"], threat_sd, None, horizon)
+    state = _state_local_projection(panel, frame, total_sd, horizon)
+    return {
+        "horizon": list(range(horizon + 1)),
+        "cum": total["cum"],
+        "lo": total["lo"],
+        "hi": total["hi"],
+        "total": total,
+        "act": act,
+        "threat": threat,
+        "state": state,
+        "note": "Each horizon regresses the cumulative return on a 1 SD shock. HAC 90% band. Not structural.",
+    }
+
+
+def _state_local_projection(panel: pd.DataFrame, frame: pd.DataFrame, scale: float, horizon: int) -> dict:
+    """Split the GPR move by whether the previous month was a high-GPR month."""
+    if "high_gpr" not in panel.columns:
+        return {"high": None, "low": None}
+    regime = panel["high_gpr"].astype(float).shift(1).reindex(frame.index)
+    usable = frame.loc[regime.notna()].copy()
+    flag = regime.loc[regime.notna()].astype(float)
+    if usable.empty or float(flag.sum()) < 24 or float((1 - flag).sum()) < 24:
+        return {"high": None, "low": None, "note": "Too few months in one regime."}
+    shock = usable["dgpr"]
+    controls = pd.DataFrame({"regime": flag.to_numpy()}, index=usable.index)
+    high_shock = shock * flag.to_numpy()
+    low_shock = shock * (1.0 - flag.to_numpy())
+    high = _pack_lp(usable, high_shock, scale, controls, horizon)
+    low = _pack_lp(usable, low_shock, scale, controls, horizon)
+    return {
+        "high": high,
+        "low": low,
+        "n_high": int(flag.sum()),
+        "n_low": int((1 - flag).sum()),
+        "note": "Lagged high-GPR state. Both coefficients are scaled by the full-sample SD of dgpr.",
+    }
+
+
+def daily_event_study(daily: dict[str, pd.Series], events: list[dict] | None = None) -> dict:
+    """Mean-adjusted cumulative abnormal returns on trading-day windows."""
+    events = EVENTS if events is None else events
+    returns = {}
+    for name in ASSETS:
+        series = daily.get(name)
+        if series is None or series.empty:
+            continue
+        ret = 100.0 * np.log(series[series > 0]).diff().dropna()
+        returns[name] = ret
+    by_event: dict[str, dict] = {}
+    buckets: dict[tuple[str, str], list[tuple[str, float]]] = {}
+    for event in events:
+        stamp = pd.Timestamp(event["date"]).normalize()
+        by_event[event["id"]] = {}
+        for name, ret in returns.items():
+            loc = int(ret.index.searchsorted(stamp))
+            if loc < 130 or loc >= len(ret):
                 continue
-            model = OLS(reg["y"], sm.add_constant(reg["shock"])).fit(cov_type="HAC", cov_kwds={"maxlags": max(1, h + 1)})
-            beta = float(model.params["shock"])
-            se = float(model.bse["shock"])
-            running += beta
-            cum[key].append(round(running, 4))
-            lo[key].append(round(running - 1.645 * se * (h + 1), 4))
-            hi[key].append(round(running + 1.645 * se * (h + 1), 4))
-    return {"horizon": list(range(horizon + 1)), "cum": cum, "lo": lo, "hi": hi, "note": "LP cumulative sum; not a structural shock."}
+            est = ret.iloc[loc - 120 : loc - 20]
+            if len(est) < 60:
+                continue
+            mu = float(est.mean())
+            sigma = float(est.std(ddof=1))
+            if sigma < 1e-8:
+                continue
+            asset_out: dict[str, dict] = {}
+            for key, (left, right) in CAR_WINDOWS.items():
+                start = loc + left
+                stop = loc + right + 1
+                if start < 0 or stop > len(ret):
+                    continue
+                window = ret.iloc[start:stop]
+                if len(window) < (right - left + 1):
+                    continue
+                car = float((window - mu).sum())
+                stat = car / (sigma * math.sqrt(len(window)))
+                pval = _two_sided_normal_p(stat)
+                asset_out[key] = {
+                    "car": round(car, 3),
+                    "t": round(stat, 3),
+                    "p": round(pval, 4),
+                    "n": int(len(window)),
+                }
+                buckets.setdefault((name, key), []).append((event["id"], pval))
+            if asset_out:
+                by_event[event["id"]][name] = asset_out
+    for (name, key), items in buckets.items():
+        qvals = _bh_qvalues(np.array([item[1] for item in items], dtype=float))
+        for (event_id, _pval), qval in zip(items, qvals):
+            by_event[event_id][name][key]["q"] = round(float(qval), 4)
+    return {
+        "windows": [{"id": key, "from": left, "to": right} for key, (left, right) in CAR_WINDOWS.items()],
+        "method": "Mean-adjusted CAR. Estimation window is trading days [-120, -20]. Two-sided normal p. BH q is across events inside one asset and window.",
+        "by_event": by_event,
+    }
+
+
+def gold_jump_sensitivity(panel: pd.DataFrame, daily: dict[str, pd.Series]) -> dict | None:
+    series = daily.get("gold")
+    if series is None or series.empty:
+        return None
+    series = series[series > 0].sort_index()
+    stamp = pd.Timestamp("2026-01-30")
+    if stamp not in series.index:
+        return {"status": "missing", "date": "2026-01-30"}
+    change = 100.0 * np.log(series).diff()
+    january = (series.index >= "2026-01-01") & (series.index <= "2026-01-31")
+    raw = float(change.loc[january].sum())
+    adjusted = change.copy()
+    adjusted.loc[stamp] = 0.0
+    ex_jump = float(adjusted.loc[january].sum())
+    month = pd.Period("2026-01", freq="M")
+    published = None if month not in panel.index else float(panel.loc[month, "ret_gold"])
+    return {
+        "status": "ok",
+        "date": "2026-01-30",
+        "daily_log_pct": round(float(change.loc[stamp]), 2),
+        "january_sum_daily": round(raw, 2),
+        "january_ex_jump": round(ex_jump, 2),
+        "january_month_end": None if published is None or not np.isfinite(published) else round(published, 2),
+        "note": "ex_jump sets the 30 Jan 2026 log move to zero and keeps the other January sessions.",
+    }
+
+
+def optional_macro_monthly() -> dict[str, dict]:
+    """Monthly log returns for optional series. Missing files are skipped."""
+    files = {
+        "silver": RAW / "silver_si.csv",
+        "vix": RAW / "vix.csv",
+        "ust10": RAW / "ust10.csv",
+    }
+    out: dict[str, dict] = {}
+    for name, path in files.items():
+        if not path.exists():
+            continue
+        try:
+            month = _month_level_return(_series_from_yahoo(path))
+        except Exception:
+            continue
+        out[name] = {
+            "months": [str(period) for period in month.index],
+            "ret": _list_or_none(month["ret"], 4),
+        }
+    tips = RAW / "tips10_fred.csv"
+    if tips.exists():
+        try:
+            frame = pd.read_csv(tips)
+            date_col = "DATE" if "DATE" in frame.columns else frame.columns[0]
+            value_col = "DFII10" if "DFII10" in frame.columns else frame.columns[-1]
+            series = pd.Series(
+                pd.to_numeric(frame[value_col], errors="coerce").to_numpy(),
+                index=pd.to_datetime(frame[date_col]),
+            ).dropna()
+            level = series.resample("ME").last()
+            level.index = level.index.to_period("M")
+            out["tips10"] = {
+                "months": [str(period) for period in level.index],
+                "level": _list_or_none(level, 4),
+                "change": _list_or_none(level.diff(), 4),
+            }
+        except Exception:
+            pass
+    return out
+
+
+def _panel_from_derived(path: Path) -> pd.DataFrame:
+    frame = pd.read_csv(path)
+    if "month" not in frame.columns:
+        raise RuntimeError(f"{path} has no month column.")
+    frame.index = pd.PeriodIndex(frame["month"].astype(str), freq="M")
+    frame.index.name = "period"
+    needed = ["gold", "brent", "dxy", "csi", "hsi", "gpr", "dgpr"] + [f"ret_{name}" for name in ASSETS]
+    missing = [col for col in needed if col not in frame.columns]
+    if missing:
+        raise RuntimeError(f"Derived panel is missing {missing}.")
+    for col in ("dgpr_act", "dgpr_threat"):
+        if col not in frame.columns:
+            frame[col] = np.nan
+    return frame.sort_index()
 
 
 def trading_path(series: pd.Series, event_date: str, sessions: int = MAX_SESSIONS) -> dict:
@@ -640,21 +927,43 @@ def _list_or_none(series: pd.Series, digits: int) -> list:
     return [_round_or_none(value, digits) for value in series.to_numpy(dtype=float)]
 
 
-def build_lab(today: pd.Timestamp | None = None) -> dict:
-    panel, daily = build_panel(today)
-    panel = add_rolling(panel)
+def build_lab(today: pd.Timestamp | None = None, from_derived: bool = False) -> dict:
+    if from_derived:
+        panel = add_rolling(_panel_from_derived(ROOT / "replication" / "panel_monthly.csv"))
+        daily = {name: pd.Series(dtype=float) for name in ASSETS + ["gpr"]}
+    else:
+        panel, daily = build_panel(today)
+        panel = add_rolling(panel)
     corrs = rolling_corr_frame(panel)
     var = fit_var(panel)
     events = []
+    has_daily = not from_derived and not daily["gold"].empty
     for event in EVENTS:
-        paths = {name: trading_path(daily[name], event["date"]) for name in ASSETS}
-        paths["gpr"] = gpr_on_gold_clock(paths["gold"], daily["gpr"])
+        if has_daily:
+            paths = {name: trading_path(daily[name], event["date"]) for name in ASSETS}
+            paths["gpr"] = gpr_on_gold_clock(paths["gold"], daily["gpr"])
+        else:
+            paths = {}
         events.append({**event, "month": str(pd.Timestamp(event["date"]).to_period("M")), "path": paths})
-    check_path = trading_path(daily["gold"], "2026-03-02", sessions=60)
-    check_tau = 10
-    check_index = check_path["tau"].index(check_tau)
+    if has_daily:
+        check_path = trading_path(daily["gold"], "2026-03-02", sessions=60)
+        check_tau = 10
+        check_index = check_path["tau"].index(check_tau)
+        check = {"date": "2026-03-02", "tau": check_tau, "gold": round(check_path["value"][check_index], 4)}
+        jumps = gold_daily_jumps(daily["gold"], n=2)
+        lbma = _gold_lbma_check(daily["gold"])
+        car = daily_event_study(daily, EVENTS)
+        jump_check = gold_jump_sensitivity(panel, daily)
+    else:
+        check = {"date": "2026-03-02", "tau": 10, "gold": None}
+        jumps = []
+        lbma = None
+        car = {"windows": [], "method": "skipped", "by_event": {}}
+        jump_check = None
     web_daily = {}
     for name, series in daily.items():
+        if series.empty:
+            continue
         clipped = series[series.index >= "2007-01-01"]
         digits = 2 if name == "gpr" else 4
         web_daily[name] = {
@@ -668,10 +977,14 @@ def build_lab(today: pd.Timestamp | None = None) -> dict:
         "var": var,
         "events": events,
         "web_daily": web_daily,
-        "check": {"date": "2026-03-02", "tau": check_tau, "gold": round(check_path["value"][check_index], 4)},
+        "check": check,
         "placebo": {str(width): placebo_bundle(panel, events, width) for width in (6, 12, 24)},
-        "gold_jumps": gold_daily_jumps(daily["gold"], n=2),
-        "gold_lbma": _gold_lbma_check(daily["gold"]),
+        "gold_jumps": jumps,
+        "gold_lbma": lbma,
+        "car": car,
+        "gold_jump_check": jump_check,
+        "macro": {} if from_derived else optional_macro_monthly(),
+        "from_derived": bool(from_derived),
     }
 
 
@@ -780,6 +1093,9 @@ def web_payload(lab: dict) -> dict:
             "check": lab["check"],
             "gold_jumps": lab.get("gold_jumps") or [],
             "gold_lbma": lab.get("gold_lbma"),
+            "gold_jump_check": lab.get("gold_jump_check"),
+            "from_derived": bool(lab.get("from_derived")),
+            "macro": sorted((lab.get("macro") or {}).keys()),
         },
         "months": [str(period) for period in panel.index],
         "ret": {name: _list_or_none(panel[f"ret_{name}"], 6) for name in ASSETS},
@@ -793,6 +1109,9 @@ def web_payload(lab: dict) -> dict:
             "equity": _list_or_none(panel["haven_equity"], 2),
             "gpr_link": _list_or_none(panel["haven_gpr"], 2),
             "dollar": _list_or_none(panel["haven_dollar"], 2),
+            "lo": _list_or_none(panel["haven_lo"], 2),
+            "hi": _list_or_none(panel["haven_hi"], 2),
+            "pc1": _list_or_none(panel["haven_pc1"], 2),
             "high": [None if not np.isfinite(value) else int(value) for value in panel["high_gpr"].to_numpy(dtype=float)],
         },
         "heatmap": heatmap_payload(lab["corrs"]),
@@ -815,6 +1134,8 @@ def web_payload(lab: dict) -> dict:
         "placebo": lab.get("placebo") or {},
         "daily": lab["web_daily"],
         "windows": _window_corr_payload(panel),
+        "car": lab.get("car") or {},
+        "macro": lab.get("macro") or {},
     }
 
 
@@ -854,7 +1175,7 @@ def canvas_payload(lab: dict) -> dict:
     for event in lab["events"]:
         fixed = {}
         for name in ASSETS + ["gpr"]:
-            packed = event["path"][name]
+            packed = (event.get("path") or {}).get(name) or {"tau": [], "value": []}
             slot = [None] * (MAX_SESSIONS * 2)
             for tau, val in zip(packed["tau"], packed["value"]):
                 index = int(tau) + MAX_SESSIONS
@@ -878,6 +1199,15 @@ def canvas_payload(lab: dict) -> dict:
     return full
 
 
+def _write_car_table(car: dict, path: Path) -> None:
+    rows = []
+    for event_id, assets in (car.get("by_event") or {}).items():
+        for asset, windows in assets.items():
+            for window_id, stats in windows.items():
+                rows.append({"event_id": event_id, "asset": asset, "window": window_id, **stats})
+    pd.DataFrame(rows).to_csv(path, index=False)
+
+
 def write_tables(lab: dict, output: Path) -> pd.DataFrame:
     output.mkdir(parents=True, exist_ok=True)
     panel: pd.DataFrame = lab["panel"]
@@ -886,6 +1216,7 @@ def write_tables(lab: dict, output: Path) -> pd.DataFrame:
     table.to_csv(output / "panel_monthly.csv", index=False)
     summary = summary_rows(panel)
     summary.to_csv(output / "event_window_summary.csv", index=False)
+    _write_car_table(lab.get("car") or {}, output / "event_daily_car.csv")
     provenance = {
         "built": ASOF.strftime("%Y-%m-%d"),
         "sample_pin": str(SAMPLE_END),
@@ -899,6 +1230,8 @@ def write_tables(lab: dict, output: Path) -> pd.DataFrame:
         "returns": "100 * log month-end price change; not excess of the risk-free rate",
         "haven": "equal weight of equity hedge, GPR co-movement, and dollar hedge; 50 is zero correlation. Site-defined, not a literature index.",
         "placebo": f"seed {PLACEBO_SEED}; overlapping pool plus blocked non-overlapping draw ({PLACEBO_DRAW})",
+        "lp": "direct local projection of cumulative returns on a 1 SD shock; state split uses lagged high-GPR",
+        "car": "mean-adjusted daily CAR, estimation [-120,-20], BH q across events",
         "lab_version": LAB_VERSION,
         "api_version": API_VERSION,
         "var": "recursive, GPR difference ordered first; AIC lag in 1..3; cumulative orthogonal IRF",

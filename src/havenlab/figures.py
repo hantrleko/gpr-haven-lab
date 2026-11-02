@@ -8,6 +8,7 @@ Color encodes the series or the sign of a contrast, not decoration.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -93,7 +94,13 @@ def _save(fig: plt.Figure, path: Path) -> None:
     fig.subplots_adjust(bottom=0.20)
     if text:
         fig.text(0.0, 0.012, text, ha="left", va="bottom", fontsize=7, color=MUTED)
-    fig.savefig(path.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.15)
+    pdf_meta = {
+        "CreationDate": datetime(2026, 10, 13, tzinfo=timezone.utc),
+        "ModDate": datetime(2026, 10, 13, tzinfo=timezone.utc),
+        "Creator": "gpr-haven-lab",
+        "Producer": "gpr-haven-lab",
+    }
+    fig.savefig(path.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.15, metadata=pdf_meta)
     fig.savefig(path.with_suffix(".png"), dpi=160, bbox_inches="tight", pad_inches=0.15)
     plt.close(fig)
 
@@ -241,6 +248,8 @@ def figure_irf(var: dict, path: Path) -> None:
 
 def figure_event_path(event: dict, path: Path, sessions: int = 40) -> None:
     """Price path around one dated event, indexed to the last close before it."""
+    if not event.get("path") or "gold" not in event["path"]:
+        return
     fig, (ax, axg) = plt.subplots(2, 1, figsize=(6.6, 5.2), sharex=True, height_ratios=[2.3, 1])
     for name in ASSETS:
         packed = event["path"][name]

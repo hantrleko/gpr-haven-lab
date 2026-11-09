@@ -136,5 +136,33 @@ class BenchmarkTest(unittest.TestCase):
         self.assertEqual(len(panel), len(self.panel))
 
 
+class EventSourceTest(unittest.TestCase):
+    def test_each_event_has_two_distinct_sources(self):
+        dates = {
+            "libya_2011": "2011-02-22",
+            "crimea_2014": "2014-03-18",
+            "brexit_2016": "2016-06-24",
+            "nk_2017": "2017-09-03",
+            "jcpoa_2018": "2018-05-08",
+            "hormuz_2019": "2019-06-13",
+            "abqaiq_2019": "2019-09-14",
+            "soleimani_2020": "2020-01-03",
+            "ukraine_2022": "2022-02-24",
+            "taiwan_2022": "2022-08-02",
+            "embargo_2022": "2022-12-05",
+            "gaza_2023": "2023-10-07",
+            "iran_israel_2024": "2024-04-13",
+            "us_iran_2025": "2025-06-22",
+            "hormuz_2026": "2026-03-02",
+        }
+        self.assertEqual(len(EVENTS), 15)
+        self.assertEqual({event["id"]: event["date"] for event in EVENTS}, dates)
+        for event in EVENTS:
+            self.assertTrue(event["source"].startswith("https://"), event["id"])
+            self.assertTrue(event["source_2"].startswith("https://"), event["id"])
+            self.assertNotEqual(event["source"], event["source_2"], event["id"])
+            self.assertRegex(event["accessed"], r"^\d{4}-\d{2}-\d{2}$")
+
+
 if __name__ == "__main__":
     unittest.main()

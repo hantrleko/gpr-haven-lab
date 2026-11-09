@@ -210,9 +210,11 @@
       <p class="note">对照分布是从没有落入这些事件月的完整窗口里，按种子 20261013 抽出最多 120 个。分位高只说明黄金的累计涨幅在普通月份里靠前，不是事件造成的异常。内置日期是事后挑选的，其中多数和中东或石油有关。英国脱欧、朝鲜核试验和佩洛西访台是补上的非中东日期。</p>
       <p class="note">2026-01-30 的 GC=F 对数跌幅大于 2013-04-15。这是连续期货合约，不是 LBMA 定盘。本构建没有配上现货，不能排除换月跳变。月度收益用月末对月末，会把这个交易日算进 2026 年 1 月。页眉里的跳变对照把这一天的对数收益记为 0 后，重算 1 月其余交易日之和。</p>
       <p class="note">局部投影对每个期限单独回归累计收益，不再把各期系数相加。可以改看地缘行动、地缘威胁，以及上月是否处于高压 GPR 的状态依赖结果。日度累计异常收益是均值调整，估计窗为事件前第 120 到第 20 个交易日。</p>
+      <p class="note">首屏那句在黄金上涨、沪深300下跌时，只有非重叠安慰剂分位低于 20 或高于 80，并且事件后 5 个交易日黄金 CAR 的 q 值不超过 0.10，才使用「避险分流」。分位落在中间，或 q 值更高，句子只写价格路径和检验结果。</p>
+      <p class="note">每条内置事件给出两条不同的公开链接和查阅日期。链接写在事件表里。竖版卡片和总表下方的汇总使用与首屏相同的门槛。</p>
     </div>
   </details>
-  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V2.0 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a> · <a href="embed.html">嵌入</a></p>
+  <p class="site-footer" id="site-foot">Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · V2.3 · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a> · <a href="embed.html">嵌入</a></p>
   <footer id="foot"></footer>
 </main>
 <div id="tip"></div>

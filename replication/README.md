@@ -1,4 +1,4 @@
-# 复现包（V2.0）
+# 复现包（V2.3）
 
 本目录在每次 `python build.py` 后从 `output/` 同步派生表，便于 Zenodo / 附录引用。
 

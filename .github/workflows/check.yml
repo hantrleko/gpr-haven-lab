@@ -1,0 +1,30 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Page scripts
+        run: |
+          node --check src/havenlab/ui/claim_rule.js
+          node --check src/havenlab/ui/verdict_rule.js
+          node --check src/havenlab/ui/app.js
+          node tests/test_claim_rule.js
+          node tests/test_verdict_rule.js
+      - name: Published Hormuz pin
+        run: python -m unittest tests.test_hormuz_pin
+      - name: Card sentence and event sources
+        run: |
+          pip install pandas numpy statsmodels matplotlib
+          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest

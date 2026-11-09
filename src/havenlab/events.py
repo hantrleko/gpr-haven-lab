@@ -6,6 +6,10 @@ after `date`, so a weekend onset sits between t = -1 and t = 0.
 
 `region` is only a label for the placebo write-up. It is not an identification
 group. The dates were chosen after the prices were known.
+
+`source` and `source_2` are two different public https pages. `accessed` is the
+day those pages were opened. The site reads this table and does not keep a
+second copy of the links.
 """
 
 from __future__ import annotations
@@ -20,6 +24,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Libya escalation",
         "note": "2011年2月22日卡扎菲发表镇压演说，利比亚抗议转入内战，随后数月油价上行。",
         "note_en": "On 22 Feb 2011 Gaddafi's speech marked the turn from protest to civil war. Oil rose over the following months.",
+        "source": "https://www.reuters.com/article/us-libya-idUSTRE71G0A620110222/",
+        "source_label": "Reuters, 2011-02-22",
+        "source_2": "https://www.bbc.com/news/world-middle-east-12544624",
+        "source_2_label": "BBC, 2011-02-22",
+        "accessed": "2026-11-05",
     },
     {
         "id": "crimea_2014",
@@ -30,6 +39,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Crimea annexation and sanctions",
         "note": "2014年3月18日俄罗斯完成对克里米亚的吞并，欧美制裁随后加码。",
         "note_en": "On 18 Mar 2014 Russia completed the annexation of Crimea, and Western sanctions tightened afterward.",
+        "source": "https://www.reuters.com/article/us-ukraine-crisis-idUSBREA1H0EM20140318/",
+        "source_label": "Reuters, 2014-03-18",
+        "source_2": "https://www.bbc.com/news/world-europe-26630062",
+        "source_2_label": "BBC, 2014-03-18",
+        "accessed": "2026-11-05",
     },
     {
         "id": "brexit_2016",
@@ -40,6 +54,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Brexit referendum result",
         "note": "公投在2016年6月23日举行，结果于6月24日清晨公布，当天是结果进入交易时段的第一天。",
         "note_en": "The referendum was held on 23 Jun 2016. The result was known early on 24 Jun, the first session that traded the outcome.",
+        "source": "https://www.bbc.co.uk/news/politics/eu_referendum/results",
+        "source_label": "BBC, 2016-06-24",
+        "source_2": "https://www.electoralcommission.org.uk/media-centre/official-result-eu-referendum-declared-electoral-commission-manchester",
+        "source_2_label": "Electoral Commission, 2016-06-24",
+        "accessed": "2026-11-05",
     },
     {
         "id": "nk_2017",
@@ -50,6 +69,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "North Korea's sixth nuclear test",
         "note": "2017年9月3日朝鲜进行第六次核试验。日期是公开报道里的试验日，不是估计出来的断点。",
         "note_en": "North Korea conducted its sixth nuclear test on 3 Sep 2017. The date is the reported test day, not an estimated break.",
+        "source": "https://www.bbc.com/news/world-asia-41139445",
+        "source_label": "BBC, 2017-09-03",
+        "source_2": "https://www.ctbto.org/resources/for-the-media/press-releases/ctbto-executive-secretary-lassina-zerbo-unusual-seismic-1",
+        "source_2_label": "CTBTO, 2017-09-03",
+        "accessed": "2026-11-05",
     },
     {
         "id": "jcpoa_2018",
@@ -60,6 +84,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "US exit from the Iran nuclear deal",
         "note": "2018年5月8日美国宣布退出JCPOA，并重启对伊朗制裁。",
         "note_en": "On 8 May 2018 the United States announced its withdrawal from the JCPOA and the restart of Iran sanctions.",
+        "source": "https://www.reuters.com/article/us-iran-nuclear-trump-idUSKBN1I90Z1/",
+        "source_label": "Reuters, 2018-05-08",
+        "source_2": "https://www.bbc.com/news/world-us-canada-44045957",
+        "source_2_label": "BBC, 2018-05-09",
+        "accessed": "2026-11-05",
     },
     {
         "id": "hormuz_2019",
@@ -70,6 +99,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Hormuz tanker attacks",
         "note": "2019年6月13日阿曼湾两艘油轮遇袭，霍尔木兹通航风险上升。",
         "note_en": "On 13 Jun 2019 two tankers were attacked in the Gulf of Oman, and the risk to Hormuz traffic rose.",
+        "source": "https://www.reuters.com/article/us-mideast-attacks-idUSKCN1TE0X2/",
+        "source_label": "Reuters, 2019-06-13",
+        "source_2": "https://www.bbc.com/news/world-middle-east-48630374",
+        "source_2_label": "BBC, 2019-06-14",
+        "accessed": "2026-11-05",
     },
     {
         "id": "abqaiq_2019",
@@ -80,6 +114,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Abqaiq facility attack",
         "note": "2019年9月14日沙特阿布凯克与胡赖斯石油设施遇袭，短期打断大量原油产能。",
         "note_en": "On 14 Sep 2019 the Abqaiq and Khurais facilities in Saudi Arabia were attacked, interrupting a large share of crude capacity.",
+        "source": "https://www.reuters.com/article/us-saudi-aramco-fire-idUSKCN1VZ0H9/",
+        "source_label": "Reuters, 2019-09-14",
+        "source_2": "https://www.bbc.com/news/world-middle-east-49703143",
+        "source_2_label": "BBC, 2019-09-14",
+        "accessed": "2026-11-05",
     },
     {
         "id": "soleimani_2020",
@@ -90,6 +129,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Soleimani strike",
         "note": "2020年1月3日美国击毙伊朗将领苏莱曼尼，美伊冲突短暂升级。事后6个月会穿过2020年3月的疫情冲击，油价大跌不能写成这次袭击的效应。",
         "note_en": "On 3 Jan 2020 the United States killed Iranian general Soleimani. The next six months also include the March 2020 pandemic, so the oil crash in that window is not an effect of the strike.",
+        "source": "https://www.reuters.com/article/us-iraq-security-blast-idUSKBN1Z20GK/",
+        "source_label": "Reuters, 2020-01-03",
+        "source_2": "https://www.bbc.com/news/world-middle-east-50979463",
+        "source_2_label": "BBC, 2020-01-03",
+        "accessed": "2026-11-05",
     },
     {
         "id": "ukraine_2022",
@@ -100,6 +144,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Full-scale invasion of Ukraine",
         "note": "2022年2月24日俄罗斯对乌克兰发动全面军事行动。",
         "note_en": "On 24 Feb 2022 Russia began the full-scale invasion of Ukraine.",
+        "source": "https://www.reuters.com/world/europe/russia-invades-ukraine-2022-02-24/",
+        "source_label": "Reuters, 2022-02-24",
+        "source_2": "https://www.bbc.com/news/world-europe-60504334",
+        "source_2_label": "BBC, 2022-02-24",
+        "accessed": "2026-11-05",
     },
     {
         "id": "taiwan_2022",
@@ -110,6 +159,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Pelosi visit to Taiwan",
         "note": "2022年8月2日美国众议院议长佩洛西抵台，解放军随后在台海周边演习。日期锚的是抵台当天。",
         "note_en": "On 2 Aug 2022 the US Speaker of the House arrived in Taiwan. PLA drills around the strait followed. The anchor is the arrival day.",
+        "source": "https://www.reuters.com/world/asia-pacific/pelosi-expected-arrive-taiwan-tuesday-sources-say-2022-08-02/",
+        "source_label": "Reuters, 2022-08-02",
+        "source_2": "https://www.bbc.com/news/world-asia-62398029",
+        "source_2_label": "BBC, 2022-08-03",
+        "accessed": "2026-11-05",
     },
     {
         "id": "embargo_2022",
@@ -120,6 +174,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "EU seaborne oil embargo on Russia",
         "note": "2022年12月5日欧盟对俄罗斯海运原油的进口禁令与七国集团价格上限同时生效。",
         "note_en": "On 5 Dec 2022 the EU ban on Russian seaborne crude and the G7 price cap took effect together.",
+        "source": "https://www.reuters.com/business/energy/eu-ban-russian-oil-2022-12-05/",
+        "source_label": "Reuters, 2022-12-05",
+        "source_2": "https://www.consilium.europa.eu/en/press/press-releases/2022/12/03/russian-oil-eu-agrees-on-level-of-price-cap/",
+        "source_2_label": "European Council, 2022-12-03",
+        "accessed": "2026-11-05",
     },
     {
         "id": "gaza_2023",
@@ -130,6 +189,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Hamas attack on Israel",
         "note": "2023年10月7日哈马斯袭击以色列，加沙冲突开始。",
         "note_en": "On 7 Oct 2023 Hamas attacked Israel and the Gaza war began.",
+        "source": "https://www.reuters.com/world/middle-east/hamas-attack-israel-2023-10-07/",
+        "source_label": "Reuters, 2023-10-07",
+        "source_2": "https://www.bbc.com/news/world-middle-east-67036625",
+        "source_2_label": "BBC, 2023-10-07",
+        "accessed": "2026-11-05",
     },
     {
         "id": "iran_israel_2024",
@@ -140,6 +204,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Iran strikes Israel",
         "note": "2024年4月13日伊朗向以色列发射无人机和导弹。",
         "note_en": "On 13 Apr 2024 Iran launched drones and missiles at Israel.",
+        "source": "https://www.reuters.com/world/middle-east/iran-launches-drone-attack-israel-2024-04-13/",
+        "source_label": "Reuters, 2024-04-13",
+        "source_2": "https://www.bbc.com/news/world-middle-east-68810053",
+        "source_2_label": "BBC, 2024-04-14",
+        "accessed": "2026-11-05",
     },
     {
         "id": "us_iran_2025",
@@ -150,6 +219,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "US strikes on Iranian nuclear sites",
         "note": "2025年6月22日（周日）美国打击福尔多、纳坦兹和伊斯法罕。GPR日度峰值在6月23日。6月13日前后已有以色列对伊朗的连续打击，事件月同为2025-06。",
         "note_en": "On Sunday 22 Jun 2025 the United States struck Fordow, Natanz and Isfahan. The daily GPR peak is 23 Jun. Israeli strikes were already underway around 13 Jun, so the event month is still 2025-06.",
+        "source": "https://carnegieendowment.org/middle-east/diwan/2025/06/the-united-states-has-attacked-irans-nuclear-facilities",
+        "source_label": "Carnegie, 2025-06-22",
+        "source_2": "https://www.iaea.org/newscenter/pressreleases/update-on-developments-in-iran-5",
+        "source_2_label": "IAEA, 2025-06-22",
+        "accessed": "2026-11-05",
     },
     {
         "id": "hormuz_2026",
@@ -160,6 +234,11 @@ EVENTS: list[dict[str, str]] = [
         "name_en": "Hormuz shipping disruption",
         "note": "2026年2月28日（周六）美以对伊朗开战，3月2日是其后第一个交易日，霍尔木兹航运从这一周起受阻。日期是按路透 2026-03-26 的报道回溯的手工锚点，本实验室没有逐条核对原始电讯。GPR月度均值在2026年3月达到本样本高位。",
         "note_en": "War reports date the onset to Saturday 28 Feb 2026. 2 Mar is the next session, and Hormuz traffic was disrupted from that week. The date is traced from a 26 Mar 2026 Reuters story and has not been checked cable by cable. The March 2026 GPR average is the high of this sample.",
+        "source": "https://www.reuters.com/business/energy/barclays-sees-1314-million-bpd-oil-supply-loss-prolonged-hormuz-disruption-2026-03-26/",
+        "source_label": "Reuters, 2026-03-26",
+        "source_2": "https://www.bbc.com/news/articles/c4geg0eeyjeo",
+        "source_2_label": "BBC, 2026-03-20",
+        "accessed": "2026-11-05",
     },
 ]
 

@@ -1,22 +1,5 @@
 let LAB = null;
 const COLORS = {gold:"#C47B12", brent:"#D55E00", dxy:"#0072B2", csi:"#1F4E79", hsi:"#5B7C99", dgpr:"#1C1915"};
-const SOURCES = {
-  libya_2011: {url: "https://www.reuters.com/article/us-libya-idUSTRE71G0A620110222/", label: "Reuters, 2011-02-22"},
-  crimea_2014: {url: "https://www.reuters.com/article/us-ukraine-crisis-idUSBREA1H0EM20140318/", label: "Reuters, 2014-03-18"},
-  jcpoa_2018: {url: "https://www.reuters.com/article/us-iran-nuclear-trump-idUSKBN1I90Z1/", label: "Reuters, 2018-05-08"},
-  hormuz_2019: {url: "https://www.reuters.com/article/us-mideast-attacks-idUSKCN1TE0X2/", label: "Reuters, 2019-06-13"},
-  abqaiq_2019: {url: "https://www.reuters.com/article/us-saudi-aramco-fire-idUSKCN1VZ0H9/", label: "Reuters, 2019-09-14"},
-  soleimani_2020: {url: "https://www.reuters.com/article/us-iraq-security-blast-idUSKBN1Z20GK/", label: "Reuters, 2020-01-03"},
-  ukraine_2022: {url: "https://www.reuters.com/world/europe/russia-invades-ukraine-2022-02-24/", label: "Reuters, 2022-02-24"},
-  embargo_2022: {url: "https://www.reuters.com/business/energy/eu-ban-russian-oil-2022-12-05/", label: "Reuters, 2022-12-05"},
-  gaza_2023: {url: "https://www.reuters.com/world/middle-east/hamas-attack-israel-2023-10-07/", label: "Reuters, 2023-10-07"},
-  iran_israel_2024: {url: "https://www.reuters.com/world/middle-east/iran-launches-drone-attack-israel-2024-04-13/", label: "Reuters, 2024-04-13"},
-  us_iran_2025: {url: "https://carnegieendowment.org/middle-east/diwan/2025/06/the-united-states-has-attacked-irans-nuclear-facilities", label: "Carnegie, 2025-06-22"},
-  hormuz_2026: {url: "https://www.reuters.com/business/energy/barclays-sees-1314-million-bpd-oil-supply-loss-prolonged-hormuz-disruption-2026-03-26/", label: "Reuters, 2026-03-26"},
-  brexit_2016: {url: "https://www.bbc.co.uk/news/politics/eu_referendum/results", label: "BBC, 2016-06-24"},
-  nk_2017: {url: "https://www.bbc.com/news/world-asia-41139445", label: "BBC, 2017-09-03"},
-  taiwan_2022: {url: "https://www.reuters.com/world/asia-pacific/pelosi-expected-arrive-taiwan-tuesday-sources-say-2022-08-02/", label: "Reuters, 2022-08-02"},
-};
 const SCENES = [
   {id:"hormuz_2026", label:"2026 霍尔木兹", labelEn:"2026 Hormuz"},
   {id:"ukraine_2022", label:"2022 俄乌", labelEn:"2022 Ukraine"},
@@ -271,7 +254,7 @@ function sessionAfter(date) {
   return gold.dates.some(item => item > date);
 }
 function labVersion() {
-  return (LAB && LAB.meta && LAB.meta.version) ? LAB.meta.version : "V2.0";
+  return (LAB && LAB.meta && LAB.meta.version) ? LAB.meta.version : "V2.3";
 }
 function placeboPack() {
   const raw = LAB.placebo && LAB.placebo[String(state.width)];
@@ -305,14 +288,21 @@ function sentence(event, stats) {
   const g = stats.cum[anchor];
   const c = stats.cum.csi;
   const b = stats.cum.brent;
-  let tone = "";
-  let claim = state.lang === "en" ? "These price paths do not point in one direction. " : "这组价格路径没有呈现单一方向。";
-  if (anchor === "gold" && g > 0 && c < 0 && state.spec.path.includes("csi")) claim = state.lang === "en" ? "Gold rises while CSI 300 falls, which matches a safe-haven split in prices. " : "黄金上涨而沪深300下跌，价格路径与避险分流一致。";
-  else if (anchor === "gold" && b > 0 && g < 0 && state.spec.path.includes("brent")) { tone = "warn"; claim = state.lang === "en" ? "Brent rises while gold falls, so gold does not show the usual safe-haven rise in this window. " : "布伦特上涨而黄金下跌，这段窗口里黄金没有表现出典型的避险上涨。"; }
-  else if (anchor === "gold" && g < 0 && c < 0 && state.spec.path.includes("csi")) { tone = "bad"; claim = state.lang === "en" ? "Gold and CSI 300 fall together, which looks more like tighter liquidity and real rates than gold alone taking the haven bid. " : "黄金与沪深300同时下跌，更像流动性和实际利率一起抽紧，而不是黄金单独承接避险买盘。"; }
-  else if (anchor === "gold" && g > 0 && c > 0 && state.spec.path.includes("csi")) claim = state.lang === "en" ? "Gold and CSI 300 rise together, so the haven asset and the risk asset do not split. " : "黄金与沪深300同时上涨，避险资产和风险资产没有反向分开。";
-  else claim = state.lang === "en" ? "The numbers above are cumulative log returns for the anchor and the selected series. " : "上面是锚资产和已选序列在这个窗口里的累计对数收益。";
   const pct = anchor === "gold" && stats.cum.gold != null ? goldPct(stats.cum.gold) : null;
+  const goldCar = LAB.car && LAB.car.by_event && LAB.car.by_event[event.id] && LAB.car.by_event[event.id].gold && LAB.car.by_event[event.id].gold.m1_p5;
+  const judged = claimRule({
+    g: g,
+    c: c,
+    b: b,
+    anchorIsGold: anchor === "gold",
+    showCsi: state.spec.path.includes("csi"),
+    showBrent: state.spec.path.includes("brent"),
+    pct: pct,
+    q: goldCar && goldCar.q != null ? Number(goldCar.q) : null,
+    lang: state.lang,
+  });
+  const tone = judged.tone;
+  const claim = judged.claim;
   const pctBit = pct == null ? "" : (state.lang === "en"
     ? "Gold's after-window return sits near the " + Math.round(100 * pct) + "th percentile of blocked non-overlapping placebo months (not causal). "
     : "黄金事后累计收益约处于非重叠安慰剂月份分布的第 " + Math.round(100 * pct) + " 分位（非因果对照）。");
@@ -784,7 +774,21 @@ function applyI18n() {
   }
   const method = document.getElementById("method-body");
   if (method && !method.dataset.zh) method.dataset.zh = method.innerHTML;
-  if (method) method.innerHTML = en ? "<p>GPR is the monthly mean of Caldara and Iacoviello's daily GPRD, downloaded 13 Oct 2026. Gold is COMEX GC=F, Brent is ICE BZ=F, the dollar is ICE DXY, Hang Seng is Yahoo ^HSI, and CSI 300 is the Sina price index sh000300, not the official vendor archive.</p><p class='note'>The haven score is this site's descriptive index, not a standard measure from the literature. In the paper preset, E = 50 × (1 − average correlation of gold with CSI 300 and Hang Seng), G = 50 × (1 + correlation of gold with the change in GPR), D = 50 × (1 − correlation of gold with DXY), and the score is (E+G+D)/3. Fifty means those correlations are zero. The page also reports equal-weight and equity-weighted variants, and GPR act versus threat sub-indices when those series are loaded.</p><p class='note'>The impulse response is a recursive monthly VAR. AIC chooses the lag from 1 to 3; this sample uses lag 1. Cholesky order: GPR change, Brent, dollar, gold, CSI 300, Hang Seng. Bands are a 90 percent residual bootstrap with 200 draws. A custom order is a lag-1 point estimate without bands. This is not structural identification.</p><p class='note'>Prices are aligned on each market's own sessions. Missing days are not filled across markets. The default correlation window is 12 months because a 6-month window has about six points. Event dates are hand anchors. The 2 March 2026 Hormuz date is traced from a 26 March 2026 Reuters story and has not been audited cable by cable. Data are rebuilt by running build.py; they are not updated automatically. The sample end is pinned at 2026-09.</p><p class='note'>The percentile compares an event's gold cumulative return with up to 120 ordinary months drawn from complete windows that do not contain a hand-dated event month. The seed is 20261013. A high percentile is not a causal effect. Most of the original dates are Middle East or oil episodes chosen after the fact. Brexit, the 2017 North Korean nuclear test, and the 2022 Pelosi visit are the non-Middle-East additions.</p><p class='note'>On 30 Jan 2026 the GC=F continuous future has a larger daily log drop than 15 Apr 2013. That series is not the LBMA fix. This build has no spot price, so a futures roll cannot be ruled out. Monthly returns are month-end to month-end and include that session in January 2026.</p>" : method.dataset.zh;
+  if (method) method.innerHTML = en ? "<p>GPR is the monthly mean of Caldara and Iacoviello's daily GPRD, downloaded 13 Oct 2026. Gold is COMEX GC=F, Brent is ICE BZ=F, the dollar is ICE DXY, Hang Seng is Yahoo ^HSI, and CSI 300 is the Sina price index sh000300, not the official vendor archive.</p><p class='note'>The haven score is this site's descriptive index, not a standard measure from the literature. In the paper preset, E = 50 × (1 − average correlation of gold with CSI 300 and Hang Seng), G = 50 × (1 + correlation of gold with the change in GPR), D = 50 × (1 − correlation of gold with DXY), and the score is (E+G+D)/3. Fifty means those correlations are zero. The page also reports equal-weight and equity-weighted variants, and GPR act versus threat sub-indices when those series are loaded.</p><p class='note'>The impulse response is a recursive monthly VAR. AIC chooses the lag from 1 to 3; this sample uses lag 1. Cholesky order: GPR change, Brent, dollar, gold, CSI 300, Hang Seng. Bands are a 90 percent residual bootstrap with 200 draws. A custom order is a lag-1 point estimate without bands. This is not structural identification.</p><p class='note'>Prices are aligned on each market's own sessions. Missing days are not filled across markets. The default correlation window is 12 months because a 6-month window has about six points. Event dates are hand anchors. The 2 March 2026 Hormuz date is traced from a 26 March 2026 Reuters story and has not been audited cable by cable. Data are rebuilt by running build.py; they are not updated automatically. The sample end is pinned at 2026-09.</p><p class='note'>The percentile compares an event's gold cumulative return with up to 120 ordinary months drawn from complete windows that do not contain a hand-dated event month. The seed is 20261013. A high percentile is not a causal effect. The headline says safe-haven split only when the blocked placebo percentile is outside 20 to 80 and the five-session gold CAR q-value is at most 0.10. Most of the original dates are Middle East or oil episodes chosen after the fact. Brexit, the 2017 North Korean nuclear test, and the 2022 Pelosi visit are the non-Middle-East additions.</p><p class='note'>On 30 Jan 2026 the GC=F continuous future has a larger daily log drop than 15 Apr 2013. That series is not the LBMA fix. This build has no spot price, so a futures roll cannot be ruled out. Monthly returns are month-end to month-end and include that session in January 2026.</p><p class='note'>Each built-in event lists two different public links and the date those pages were checked. The links live in the event table. The vertical card and the comparison summary use the same safe-haven-split gate as the headline.</p>" : method.dataset.zh;
+}
+function sourceLine(event) {
+  const en = state.lang === "en";
+  const links = [];
+  if (event.source) links.push("<a href='" + esc(event.source) + "'>" + esc(event.source_label || event.source) + "</a>");
+  if (event.source_2) links.push("<a href='" + esc(event.source_2) + "'>" + esc(event.source_2_label || event.source_2) + "</a>");
+  if (!links.length) {
+    return "<p class='note'>" + (en ? "The date is a hand anchor. This row does not yet have its own source link." : "日期是手工锚点。这条还没有单独核对过的来源链接。") + "</p>";
+  }
+  const checked = event.accessed ? (en ? " Checked " + esc(event.accessed) + "." : "查阅 " + esc(event.accessed) + "。") : "";
+  const caveat = en
+    ? "The date is a hand anchor, not an estimated break, and it has not been checked cable by cable."
+    : "日期是手工锚点，不是估计出来的断点。本页没有逐条核对原始电讯。";
+  return "<p class='note'>" + (en ? "Sources: " : "来源：") + links.join(en ? "; " : "；") + "." + checked + " " + caveat + "</p>";
 }
 function render() {
   applyI18n();
@@ -793,10 +797,7 @@ function render() {
   const box = document.getElementById("readout");
   const said = sentence(event, stats);
   box.className = "readout " + (said.tone || "");
-  const src = SOURCES[event.id];
-  const srcLine = src
-    ? "<p class='note'>" + (state.lang === "en" ? "Source: " : "来源：") + "<a href='" + src.url + "'>" + src.label + "</a> " + (state.lang === "en" ? "The date is a hand anchor, not an estimated break, and it has not been checked cable by cable." : "日期是手工锚点，不是估计出来的断点。本页没有逐条核对原始电讯。") + "</p>"
-    : "<p class='note'>" + (state.lang === "en" ? "The date is a hand anchor. This row does not yet have its own source link." : "日期是手工锚点。这条还没有单独核对过的来源链接。") + "</p>";
+  const srcLine = sourceLine(event);
   box.innerHTML = "<div>" + esc(said.text) + "</div><details><summary>" + (state.lang === "en" ? "Event note" : "事件背景") + "</summary><p class='note'>" + esc(eventNote(event)) + "</p>" + srcLine + "</details>";
   const anchor = state.spec.anchor;
   const score = stats && stats.after ? stats.after.score : null;
@@ -1382,26 +1383,31 @@ function downloadGrid(hostId, filename, cols, cellW, cellH) {
 }
 function fillVerdict() {
   const host = document.getElementById("verdict");
-  if (!host) return;
-  const en = state.lang === "en";
-  const split = [], down = [], other = [], partial = [];
+  if (!host || !LAB) return;
+  const events = [];
   LAB.events.forEach(event => {
     const stats = analyze(event.month, state.width);
-    const name = eventTitle(event);
     if (!stats || stats.cum.gold == null) return;
-    if (stats.partial) { partial.push(name); return; }
-    if (stats.cum.gold > 0 && stats.cum.csi < 0) split.push(name);
-    else if (stats.cum.gold < 0) down.push(name);
-    else other.push(name);
+    const goldCar = LAB.car && LAB.car.by_event && LAB.car.by_event[event.id] && LAB.car.by_event[event.id].gold && LAB.car.by_event[event.id].gold.m1_p5;
+    events.push({
+      name: eventTitle(event),
+      partial: !!stats.partial,
+      g: stats.cum.gold,
+      c: stats.cum.csi,
+      b: stats.cum.brent,
+      pct: goldPct(stats.cum.gold),
+      q: goldCar && goldCar.q != null ? Number(goldCar.q) : null,
+    });
   });
-  const mideast = LAB.events.filter(event => event.region === "mideast").length;
   const pack = LAB.placebo && LAB.placebo[String(state.width)];
-  const join = list => list.length ? list.join(en ? "; " : "、") : (en ? "none" : "没有");
-  if (en) {
-    host.textContent = "At the selected " + state.width + "-month window, gold rose while CSI 300 fell for: " + join(split) + ". Gold itself fell for: " + join(down) + ". The rest did not split: " + join(other) + ". Incomplete windows are left out of those lists" + (partial.length ? " (" + partial.join("; ") + ")" : "") + ". " + mideast + " of " + LAB.events.length + " built-in dates are tagged Middle East, and all of them were chosen after the prices were known. " + (pack ? "The gold percentile uses " + pack.n_draw + " ordinary months drawn from " + pack.n_pool + " complete windows that do not contain an event month, seed " + pack.seed + "." : "");
-  } else {
-    host.textContent = "按当前 " + state.width + " 个月窗口，黄金上涨且沪深300下跌的是：" + join(split) + "。黄金本身下跌的是：" + join(down) + "。其余没有反向分开：" + join(other) + "。不完整的窗口不放进这三句" + (partial.length ? "（" + partial.join("、") + "）" : "") + "。" + LAB.events.length + " 个内置日期里有 " + mideast + " 个标成中东，而且都是事后挑选的。分位见总表最后一列" + (pack ? "，用的是种子 " + pack.seed + " 抽出的 " + pack.n_draw + " 个普通月份，母体是 " + pack.n_pool + " 个不包含事件月的完整窗口。" : "。");
-  }
+  host.textContent = verdictText({
+    lang: state.lang,
+    width: state.width,
+    events: events,
+    nEvents: LAB.events.length,
+    nMideast: LAB.events.filter(event => event.region === "mideast").length,
+    placebo: pack ? {n_draw: pack.n_draw, n_pool: pack.n_pool, seed: pack.seed} : null,
+  });
 }
 function fillGoldNote() {
   const host = document.getElementById("gold-note");

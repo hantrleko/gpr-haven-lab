@@ -1069,7 +1069,22 @@ def web_payload(lab: dict) -> dict:
         events.append(
             {
                 key: event[key]
-                for key in ("id", "date", "month", "group", "region", "name", "name_en", "note", "note_en")
+                for key in (
+                    "id",
+                    "date",
+                    "month",
+                    "group",
+                    "region",
+                    "name",
+                    "name_en",
+                    "note",
+                    "note_en",
+                    "source",
+                    "source_label",
+                    "source_2",
+                    "source_2_label",
+                    "accessed",
+                )
                 if key in event
             }
         )
@@ -1191,6 +1206,11 @@ def canvas_payload(lab: dict) -> dict:
                 "group": event["group"],
                 "name": event["name"],
                 "note": event["note"],
+                "source": event.get("source"),
+                "source_label": event.get("source_label"),
+                "source_2": event.get("source_2"),
+                "source_2_label": event.get("source_2_label"),
+                "accessed": event.get("accessed"),
                 "path": fixed,
             }
         )

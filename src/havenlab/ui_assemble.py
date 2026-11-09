@@ -25,7 +25,12 @@ def assemble(root: Path) -> str:
     head = (folder / "head.html").read_text(encoding="utf-8").rstrip()
     styles = (folder / "styles.css").read_text(encoding="utf-8").rstrip()
     body = (folder / "body.html").read_text(encoding="utf-8").strip()
-    script = (folder / "app.js").read_text(encoding="utf-8").rstrip()
+    pieces = []
+    for name in ("claim_rule.js", "verdict_rule.js"):
+        path = folder / name
+        if path.exists():
+            pieces.append(path.read_text(encoding="utf-8").rstrip() + "\n")
+    script = "".join(pieces) + (folder / "app.js").read_text(encoding="utf-8").rstrip()
     return (
         f"{head}\n<style>\n{styles}\n</style>\n</head>\n{body}\n<script>\n{script}\n</script>\n</body>\n</html>\n"
     )

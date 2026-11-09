@@ -2,10 +2,14 @@
 
 Each card states the six-month gold and CSI 300 cumulative log returns and
 draws those two paths. The event name does not say whether gold rose or fell.
+When gold is up and CSI 300 is down, the tail uses the same three branches as
+``claim_rule.js``: a middle placebo percentile, or a five-session gold CAR
+q-value above 0.10, does not get the safe-haven-split wording.
 """
 
 from __future__ import annotations
 
+import math
 import shutil
 from pathlib import Path
 
@@ -44,7 +48,35 @@ def _rebase(path: dict) -> tuple[list[int], list[float]] | None:
     return xs, ys
 
 
-def _sentence(window: dict) -> tuple[str, str]:
+def _q_text(q: float) -> str:
+    return f"{math.floor(float(q) * 100 + 0.5) / 100:.2f}"
+
+
+def split_claim(g: float, c: float, pct: float | None, q: float | None) -> str:
+    """Chinese gold-up / CSI-down branch of claim_rule.js."""
+    mid = pct is not None and 0.20 <= float(pct) <= 0.80
+    q_fail = q is not None and float(q) > 0.10
+    q_text = "" if q is None else _q_text(float(q))
+    car_fail = f"事件日起 5 个交易日的黄金 CAR 未通过多重比较校正（q={q_text}）。"
+    car_pass = f"事件后 5 个交易日黄金 CAR 的 q 值为 {q_text}。"
+    tail = pct is not None and not mid
+    if tail and not q_fail:
+        claim = "黄金上涨而沪深300下跌，价格路径与避险分流一致。"
+        if q is not None:
+            claim += car_pass
+        return claim
+    if q_fail:
+        mid_bit = "黄金累计收益落在普通月份的中间分位。" if mid else ""
+        return "黄金上涨而沪深300下跌。" + mid_bit + car_fail
+    if pct is None:
+        return "黄金上涨而沪深300下跌。没有普通月份分位，这次价格分开只按路径描述。"
+    claim = "黄金上涨而沪深300下跌，但黄金累计收益落在普通月份的中间分位，这次价格分开只按路径描述。"
+    if q is not None:
+        claim += car_pass
+    return claim
+
+
+def _sentence(window: dict, pct: float | None = None, q: float | None = None) -> tuple[str, str]:
     gold = window["cum"]["gold"]
     csi = window["cum"]["csi"]
     gold_txt = "—" if gold is None else f"{gold:+.1f}%"
@@ -52,13 +84,37 @@ def _sentence(window: dict) -> tuple[str, str]:
     if window["partial"]:
         tail = "窗口被样本末端截断。"
     elif gold is not None and csi is not None and gold > 0 and csi < 0:
-        tail = "黄金上涨、沪深300下跌，价格上像避险分流。"
+        tail = split_claim(gold, csi, pct, q).rstrip()
     elif gold is not None and gold < 0:
         tail = "黄金在这段窗口里下跌。"
     else:
         tail = "黄金和沪深300没有反向分开。"
     line = f"事后 {window['n_after']} 个月：黄金 {gold_txt}，沪深300 {csi_txt}。"
     return line, tail
+
+
+def _blocked_gold(lab: dict) -> list[float]:
+    bundle = (lab.get("placebo") or {}).get("6") or {}
+    blocked = bundle.get("blocked") or {}
+    series = blocked.get("gold") or bundle.get("gold") or []
+    return [float(item) for item in series if item is not None]
+
+
+def _gold_pct(value: float | None, series: list[float]) -> float | None:
+    if value is None or not series:
+        return None
+    n = sum(1 for item in series if item <= float(value) + 1e-9)
+    return n / len(series)
+
+
+def _car_q(lab: dict, event_id: str) -> float | None:
+    try:
+        q = lab["car"]["by_event"][event_id]["gold"]["m1_p5"]["q"]
+    except (KeyError, TypeError):
+        return None
+    if q is None:
+        return None
+    return float(q)
 
 
 def export_cards(lab: dict, dest: Path) -> None:
@@ -74,10 +130,14 @@ def export_cards(lab: dict, dest: Path) -> None:
         except Exception:
             logo = None
     panel = lab["panel"]
+    placebo_gold = _blocked_gold(lab)
     for event in lab["events"]:
         window = event_window(panel, event["month"], 6)
-        gold = _rebase(event["path"]["gold"])
-        csi = _rebase(event["path"]["csi"])
+        pct = _gold_pct(window["cum"]["gold"], placebo_gold)
+        q = _car_q(lab, event["id"])
+        path = event.get("path") or {}
+        gold = _rebase(path["gold"]) if path.get("gold") else None
+        csi = _rebase(path["csi"]) if path.get("csi") else None
         fig = plt.figure(figsize=(9, 12), dpi=120, facecolor="#fbfaf6")
         fig.text(0.5, 0.46, "EF", ha="center", va="center", fontsize=120, color="#1f4b73", alpha=0.06)
         if logo is not None:
@@ -89,7 +149,7 @@ def export_cards(lab: dict, dest: Path) -> None:
         fig.text(0.08, 0.84, event["name"], fontsize=28, color="#1c1915", fontweight="bold")
         fig.text(0.08, 0.80, event.get("name_en", ""), fontsize=14, color="#3a342c")
         fig.text(0.08, 0.76, event["date"], fontsize=14, color="#3a342c")
-        line, tail = _sentence(window)
+        line, tail = _sentence(window, pct, q)
         fig.text(0.08, 0.70, line, fontsize=18, color="#1c1915")
         fig.text(0.08, 0.66, tail, fontsize=16, color="#3a342c")
         ax = fig.add_axes((0.10, 0.18, 0.82, 0.42))

@@ -2,7 +2,7 @@
 
 在线页面：<https://hantrleko.github.io/gpr-haven-lab/>
 
-当前版本 **V2.0**。每日改动记在 `CHANGELOG.md`。
+当前版本 **V2.3**。每日改动记在 `CHANGELOG.md`。每条内置事件有两条公开来源和查阅日期，记在 `src/havenlab/events.py`。竖版卡片和对比汇总与首屏使用同一条避险分流门槛。
 
 交互页面用来对照事件叙事。`figs/` 里的 PDF 是同一套定义导出的图。页面右上角可以切到英文。选中的事件和窗口写在网址里，例如 `https://hantrleko.github.io/gpr-haven-lab/?e=ukraine_2022&w=12&d=40`。论文配套说明见 [`docs/paper.html`](docs/paper.html)。
 

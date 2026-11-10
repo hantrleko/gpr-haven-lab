@@ -1,0 +1,341 @@
+{
+  "max_abs_diff": 0.3505,
+  "rows": [
+    {
+      "event_id": "libya_2011",
+      "width": 6,
+      "bootstrap_pct": 0.9135,
+      "blocked_pct": 0.88,
+      "blocked_n": 25,
+      "diff": 0.0335
+    },
+    {
+      "event_id": "crimea_2014",
+      "width": 6,
+      "bootstrap_pct": 0.2595,
+      "blocked_pct": 0.24,
+      "blocked_n": 25,
+      "diff": 0.0195
+    },
+    {
+      "event_id": "brexit_2016",
+      "width": 6,
+      "bootstrap_pct": 0.2565,
+      "blocked_pct": 0.24,
+      "blocked_n": 25,
+      "diff": 0.0165
+    },
+    {
+      "event_id": "nk_2017",
+      "width": 6,
+      "bootstrap_pct": 0.337,
+      "blocked_pct": 0.36,
+      "blocked_n": 25,
+      "diff": -0.023
+    },
+    {
+      "event_id": "jcpoa_2018",
+      "width": 6,
+      "bootstrap_pct": 0.1445,
+      "blocked_pct": 0.12,
+      "blocked_n": 25,
+      "diff": 0.0245
+    },
+    {
+      "event_id": "hormuz_2019",
+      "width": 6,
+      "bootstrap_pct": 0.704,
+      "blocked_pct": 0.76,
+      "blocked_n": 25,
+      "diff": -0.056
+    },
+    {
+      "event_id": "abqaiq_2019",
+      "width": 6,
+      "bootstrap_pct": 0.475,
+      "blocked_pct": 0.6,
+      "blocked_n": 25,
+      "diff": -0.125
+    },
+    {
+      "event_id": "soleimani_2020",
+      "width": 6,
+      "bootstrap_pct": 0.825,
+      "blocked_pct": 0.88,
+      "blocked_n": 25,
+      "diff": -0.055
+    },
+    {
+      "event_id": "ukraine_2022",
+      "width": 6,
+      "bootstrap_pct": 0.2895,
+      "blocked_pct": 0.28,
+      "blocked_n": 25,
+      "diff": 0.0095
+    },
+    {
+      "event_id": "taiwan_2022",
+      "width": 6,
+      "bootstrap_pct": 0.623,
+      "blocked_pct": 0.72,
+      "blocked_n": 25,
+      "diff": -0.097
+    },
+    {
+      "event_id": "embargo_2022",
+      "width": 6,
+      "bootstrap_pct": 0.6765,
+      "blocked_pct": 0.76,
+      "blocked_n": 25,
+      "diff": -0.0835
+    },
+    {
+      "event_id": "gaza_2023",
+      "width": 6,
+      "bootstrap_pct": 0.895,
+      "blocked_pct": 0.88,
+      "blocked_n": 25,
+      "diff": 0.015
+    },
+    {
+      "event_id": "iran_israel_2024",
+      "width": 6,
+      "bootstrap_pct": 0.842,
+      "blocked_pct": 0.88,
+      "blocked_n": 25,
+      "diff": -0.038
+    },
+    {
+      "event_id": "us_iran_2025",
+      "width": 6,
+      "bootstrap_pct": 0.9685,
+      "blocked_pct": 0.92,
+      "blocked_n": 25,
+      "diff": 0.0485
+    },
+    {
+      "event_id": "hormuz_2026",
+      "width": 6,
+      "bootstrap_pct": 0.038,
+      "blocked_pct": 0.04,
+      "blocked_n": 25,
+      "diff": -0.002
+    },
+    {
+      "event_id": "libya_2011",
+      "width": 12,
+      "bootstrap_pct": 0.8425,
+      "blocked_pct": 0.875,
+      "blocked_n": 8,
+      "diff": -0.0325
+    },
+    {
+      "event_id": "crimea_2014",
+      "width": 12,
+      "bootstrap_pct": 0.1255,
+      "blocked_pct": 0.25,
+      "blocked_n": 8,
+      "diff": -0.1245
+    },
+    {
+      "event_id": "brexit_2016",
+      "width": 12,
+      "bootstrap_pct": 0.398,
+      "blocked_pct": 0.625,
+      "blocked_n": 8,
+      "diff": -0.227
+    },
+    {
+      "event_id": "nk_2017",
+      "width": 12,
+      "bootstrap_pct": 0.1205,
+      "blocked_pct": 0.25,
+      "blocked_n": 8,
+      "diff": -0.1295
+    },
+    {
+      "event_id": "jcpoa_2018",
+      "width": 12,
+      "bootstrap_pct": 0.2495,
+      "blocked_pct": 0.5,
+      "blocked_n": 8,
+      "diff": -0.2505
+    },
+    {
+      "event_id": "hormuz_2019",
+      "width": 12,
+      "bootstrap_pct": 0.866,
+      "blocked_pct": 0.875,
+      "blocked_n": 8,
+      "diff": -0.009
+    },
+    {
+      "event_id": "abqaiq_2019",
+      "width": 12,
+      "bootstrap_pct": 0.829,
+      "blocked_pct": 0.875,
+      "blocked_n": 8,
+      "diff": -0.046
+    },
+    {
+      "event_id": "soleimani_2020",
+      "width": 12,
+      "bootstrap_pct": 0.778,
+      "blocked_pct": 0.875,
+      "blocked_n": 8,
+      "diff": -0.097
+    },
+    {
+      "event_id": "ukraine_2022",
+      "width": 12,
+      "bootstrap_pct": 0.4605,
+      "blocked_pct": 0.75,
+      "blocked_n": 8,
+      "diff": -0.2895
+    },
+    {
+      "event_id": "taiwan_2022",
+      "width": 12,
+      "bootstrap_pct": 0.543,
+      "blocked_pct": 0.75,
+      "blocked_n": 8,
+      "diff": -0.207
+    },
+    {
+      "event_id": "embargo_2022",
+      "width": 12,
+      "bootstrap_pct": 0.613,
+      "blocked_pct": 0.75,
+      "blocked_n": 8,
+      "diff": -0.137
+    },
+    {
+      "event_id": "gaza_2023",
+      "width": 12,
+      "bootstrap_pct": 0.931,
+      "blocked_pct": 1.0,
+      "blocked_n": 8,
+      "diff": -0.069
+    },
+    {
+      "event_id": "iran_israel_2024",
+      "width": 12,
+      "bootstrap_pct": 0.917,
+      "blocked_pct": 1.0,
+      "blocked_n": 8,
+      "diff": -0.083
+    },
+    {
+      "event_id": "us_iran_2025",
+      "width": 12,
+      "bootstrap_pct": 0.901,
+      "blocked_pct": 1.0,
+      "blocked_n": 8,
+      "diff": -0.099
+    },
+    {
+      "event_id": "libya_2011",
+      "width": 24,
+      "bootstrap_pct": 0.5625,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": 0.0625
+    },
+    {
+      "event_id": "crimea_2014",
+      "width": 24,
+      "bootstrap_pct": 0.1495,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": -0.3505
+    },
+    {
+      "event_id": "brexit_2016",
+      "width": 24,
+      "bootstrap_pct": 0.318,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": -0.182
+    },
+    {
+      "event_id": "nk_2017",
+      "width": 24,
+      "bootstrap_pct": 0.443,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": -0.057
+    },
+    {
+      "event_id": "jcpoa_2018",
+      "width": 24,
+      "bootstrap_pct": 0.603,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": 0.103
+    },
+    {
+      "event_id": "hormuz_2019",
+      "width": 24,
+      "bootstrap_pct": 0.757,
+      "blocked_pct": 1.0,
+      "blocked_n": 2,
+      "diff": -0.243
+    },
+    {
+      "event_id": "abqaiq_2019",
+      "width": 24,
+      "bootstrap_pct": 0.4945,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": -0.0055
+    },
+    {
+      "event_id": "soleimani_2020",
+      "width": 24,
+      "bootstrap_pct": 0.5185,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": 0.0185
+    },
+    {
+      "event_id": "ukraine_2022",
+      "width": 24,
+      "bootstrap_pct": 0.4095,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": -0.0905
+    },
+    {
+      "event_id": "taiwan_2022",
+      "width": 24,
+      "bootstrap_pct": 0.701,
+      "blocked_pct": 0.5,
+      "blocked_n": 2,
+      "diff": 0.201
+    },
+    {
+      "event_id": "embargo_2022",
+      "width": 24,
+      "bootstrap_pct": 0.7805,
+      "blocked_pct": 1.0,
+      "blocked_n": 2,
+      "diff": -0.2195
+    },
+    {
+      "event_id": "gaza_2023",
+      "width": 24,
+      "bootstrap_pct": 0.9845,
+      "blocked_pct": 1.0,
+      "blocked_n": 2,
+      "diff": -0.0155
+    },
+    {
+      "event_id": "iran_israel_2024",
+      "width": 24,
+      "bootstrap_pct": 0.986,
+      "blocked_pct": 1.0,
+      "blocked_n": 2,
+      "diff": -0.014
+    }
+  ]
+}

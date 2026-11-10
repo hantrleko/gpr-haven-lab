@@ -36,4 +36,25 @@ const failed = context.claimRule({
 assertOk(!failed.claim.includes("避险"), "failed q must not use 避险: " + failed.claim);
 assertOk(failed.claim.includes("未通过多重比较校正"), "failed q must name the correction: " + failed.claim);
 
+const crossing = context.claimRule({
+  g: 10, c: -5, b: 0,
+  anchorIsGold: true, showCsi: true, showBrent: true,
+  pct: 0.18, pct_lo: 0.03, pct_hi: 0.34, q: 0.04, lang: "zh",
+});
+assertOk(!crossing.claim.includes("避险分流"), "an interval that leaves the tail must not say 避险分流: " + crossing.claim);
+
+const inside = context.claimRule({
+  g: 10, c: -5, b: 0,
+  anchorIsGold: true, showCsi: true, showBrent: true,
+  pct: 0.92, pct_lo: 0.85, pct_hi: 0.97, q: 0.04, lang: "zh",
+});
+assertOk(inside.claim.includes("避险分流"), "a whole interval in the tail should say 避险分流: " + inside.claim);
+
+const explore = context.claimRule({
+  g: 10, c: -5, b: 0,
+  anchorIsGold: true, showCsi: true, showBrent: true,
+  pct: 0.55, q: null, lang: "zh", exploratory: true,
+});
+assertOk(explore.claim.startsWith("[探索性]"), "exploratory prefix missing: " + explore.claim);
+
 console.log("claim_rule ok");

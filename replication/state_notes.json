@@ -1,0 +1,22 @@
+{
+  "tips10": {
+    "note": "2026-11-10 连接 FRED 的 DFII10 超时。没有本地文件，这一条不进回归。"
+  },
+  "breakeven": {
+    "note": "2026-11-10 连接 FRED 的 T10YIE 超时。没有本地文件，这一条不进回归。"
+  },
+  "vix": {
+    "source": "CBOE VIX close, local file through 2026-08-26",
+    "note": "FRED 的 VIXCLS 在 2026-11-10 超时。这里用本机已有的 CBOE VIX 收盘，截至 2026-08-26。它和 VIXCLS 是同一个指数，进入交互项回归。"
+  },
+  "dollar_broad": {
+    "note": "2026-11-10 连接 FRED 的 DTWEXBGS 超时。没有本地文件，这一条不进回归。"
+  },
+  "hy_oas": {
+    "status": "short_history",
+    "rows": 793,
+    "start": "2023-11-10",
+    "in_model": false,
+    "note": "FRED 上的 ICE 高收益债利差大约从 2023-11-10 起，只有约两年。只显示，不进回归。"
+  }
+}

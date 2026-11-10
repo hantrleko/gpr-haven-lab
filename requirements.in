@@ -1,0 +1,7 @@
+pandas>=2.2
+numpy>=1.26
+statsmodels>=0.14
+matplotlib>=3.8
+requests>=2.31
+akshare>=1.14
+openpyxl>=3.1

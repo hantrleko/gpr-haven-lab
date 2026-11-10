@@ -20,11 +20,54 @@ jobs:
           node --check src/havenlab/ui/claim_rule.js
           node --check src/havenlab/ui/verdict_rule.js
           node --check src/havenlab/ui/app.js
+          node --check src/havenlab/ui/phase_b.js
           node tests/test_claim_rule.js
           node tests/test_verdict_rule.js
+          node tests/test_haven_se.js
       - name: Published Hormuz pin
         run: python -m unittest tests.test_hormuz_pin
       - name: Card sentence and event sources
         run: |
           pip install pandas numpy statsmodels matplotlib
-          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest
+          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest tests.test_haven_se tests.test_gold_basis.RollJumpTest.test_january_2026_gap_is_recorded_and_spot_month_is_kept tests.test_placebo_bootstrap tests.test_downside tests.test_conditional_lp tests.test_spec_curve tests.test_static_claim
+
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the locked requirements
+        run: pip install -r requirements.txt
+      - name: Rebuild published JSON and the page from the monthly panel
+        run: python build.py --from-derived
+      - name: Schema
+        run: python scripts/validate_payload.py
+      - name: Source links
+        run: python scripts/linkcheck.py
+      - name: Published files match the rebuild
+        run: |
+          python - <<'PY'
+          import subprocess, sys
+          from pathlib import Path
+          paths = [
+              "docs/index.html",
+              "docs/feed.xml",
+              "docs/api/v1/manifest.json",
+              "docs/lab_data.json",
+              "docs/lab_data_monthly.json",
+              "docs/lab_data_daily.json",
+          ]
+          paths += [str(path).replace("\\", "/") for path in Path("docs").glob("lab_data_monthly.*.json")]
+          paths += [str(path).replace("\\", "/") for path in Path("docs").glob("slices.json")]
+          paths += ["docs/sitemap.xml", "docs/robots.txt", "docs/api/v2/manifest.json"]
+          paths += [str(path).replace("\\", "/") for path in Path("docs").glob("e/*/index.html")]
+          paths += [str(path).replace("\\", "/") for path in Path("docs").glob("en/e/*/index.html")]
+          paths += [str(path).replace("\\", "/") for path in Path("docs/api/v2").rglob("*.json")]
+          subprocess.check_call(["git", "add", "-N", "--", *paths])
+          code = subprocess.call(["git", "diff", "--exit-code", "--", *paths])
+          if code:
+              subprocess.call(["git", "diff", "--stat", "--", *paths])
+          sys.exit(code)
+          PY

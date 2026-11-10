@@ -1,0 +1,29 @@
+{
+  "lab": "gpr-haven-lab",
+  "version": "V2.4.0",
+  "api_version": "2.4.0",
+  "schemas": {
+    "payload": "2.0.0",
+    "api": "v2"
+  },
+  "sample": [
+    "2007-08",
+    "2026-09"
+  ],
+  "built": "2026-10-13",
+  "payload_hash": "e6957bfed331ab82",
+  "registry_hash": "ac8da66f0c93f0ee",
+  "update": "weekly",
+  "license": "MIT",
+  "fields": "GitHub Pages cannot run ?fields=. Use panel.core.json for month, ret_gold, and gpr.",
+  "cache": "Pages cannot set Cache-Control. Fetch this manifest with no-store. The hashed panel file is content-addressed.",
+  "endpoints": {
+    "manifest": "api/v2/manifest.json",
+    "events": "api/v2/events.json",
+    "event": "api/v2/event/{id}.json",
+    "panel": "api/v2/panel.json",
+    "panel_hashed": "api/v2/panel.60b07d288b97d8bf.json",
+    "panel_core": "api/v2/panel.core.json",
+    "daily": "api/v2/daily/{id}.json"
+  }
+}

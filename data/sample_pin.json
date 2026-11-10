@@ -1,0 +1,5 @@
+{
+  "sample_end": "2026-09",
+  "asof": "2026-10-13",
+  "note": "Manual builds read this pin. Only python build.py --asof auto may move sample_end, and only to the last complete month actually present in the panel. That move is its own commit."
+}

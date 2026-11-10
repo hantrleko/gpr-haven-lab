@@ -1,0 +1,17 @@
+const fs = require("fs");
+const assert = require("assert");
+const src = fs.readFileSync("src/havenlab/ui/app.js", "utf8");
+const start = src.indexOf("function havenSE");
+const end = src.indexOf("function havenTone");
+assert.ok(start > 0 && end > start, "havenSE was not found");
+eval(src.slice(start, end));
+const stats = {score: 50, cCsi: 0.2, cHsi: -0.1, cGpr: 0.3, cDxy: -0.4};
+const band = havenSE(stats, 36);
+assert.ok(Math.abs(band.se - 4.1125) < 0.02, band.se);
+const toneSrc = src.slice(src.indexOf("function havenTone"), src.indexOf("function toneColor"));
+eval(toneSrc);
+assert.strictEqual(havenTone(50, {lo: 40, hi: 60}, 36), "neutral");
+assert.strictEqual(havenTone(70, {lo: 61, hi: 79}, 36), "blue");
+assert.strictEqual(havenTone(30, {lo: 20, hi: 40}, 36), "orange");
+assert.strictEqual(havenTone(70, {lo: 61, hi: 79}, 12), "neutral");
+console.log("haven_se ok");

@@ -2,15 +2,15 @@
 
 在线页面：<https://hantrleko.github.io/gpr-haven-lab/>
 
-当前版本 **V2.3**。每日改动记在 `CHANGELOG.md`。每条内置事件有两条公开来源和查阅日期，记在 `src/havenlab/events.py`。竖版卡片和对比汇总与首屏使用同一条避险分流门槛。
+当前版本 **V2.4.0**。每日改动记在 `CHANGELOG.md`。每条内置事件有两条公开来源和查阅日期，记在 `src/havenlab/events.py`。竖版卡片和对比汇总与首屏使用同一条避险分流门槛。
 
 交互页面用来对照事件叙事。`figs/` 里的 PDF 是同一套定义导出的图。页面右上角可以切到英文。选中的事件和窗口写在网址里，例如 `https://hantrleko.github.io/gpr-haven-lab/?e=ukraine_2022&w=12&d=40`。论文配套说明见 [`docs/paper.html`](docs/paper.html)。
 
 ## 打开
 
-在线页面由 `docs/` 发布到 GitHub Pages。本地预览不要直接双击 html，在 `app/` 目录运行本地服务器，例如 `python -m http.server 8891`。首屏加载 `lab_data_monthly.json`，日度序列在 `lab_data_daily.json`。
+在线页面由 `docs/` 发布到 GitHub Pages。本地预览不要直接双击 html，在仓库根目录运行 `python -m http.server -d docs 8891`。首屏加载带内容哈希的月度包，日度序列在 `lab_data_daily.json`。`app/` 不再入库。
 
-数据不是自动日更。样本终点固定在 `2026-09`（`SAMPLE_END`）。换一天运行 `build.py` 也不会把样本延到下一个月，除非改这个常数。
+数据不是自动日更。样本终点写在 `data/sample_pin.json`，当前是 `2026-09`。普通的 `build.py` 读这个钉，不会把样本延到下一个月。只有 `build.py --asof auto` 可以推进到面板里上一个完整月。
 
 ## 重跑（V2.0 推荐流程）
 

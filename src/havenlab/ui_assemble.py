@@ -31,6 +31,9 @@ def assemble(root: Path) -> str:
         if path.exists():
             pieces.append(path.read_text(encoding="utf-8").rstrip() + "\n")
     script = "".join(pieces) + (folder / "app.js").read_text(encoding="utf-8").rstrip()
+    extra = folder / "phase_b.js"
+    if extra.exists():
+        script += "\n" + extra.read_text(encoding="utf-8").rstrip()
     return (
         f"{head}\n<style>\n{styles}\n</style>\n</head>\n{body}\n<script>\n{script}\n</script>\n</body>\n</html>\n"
     )

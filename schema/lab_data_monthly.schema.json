@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hantrleko.github.io/gpr-haven-lab/schema/lab_data_monthly.schema.json",
+  "title": "GPR Haven Lab monthly payload",
+  "type": "object",
+  "required": ["meta", "months", "ret", "events"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["version", "sample_end", "built"],
+      "properties": {
+        "version": {"type": "string"},
+        "gold_lbma": {"type": ["object", "null"]},
+        "gold_basis_check": {
+          "type": "object",
+          "properties": {"max_month_diff_pp": {"type": ["number", "null"]}}
+        }
+      }
+    },
+    "months": {"type": "array", "items": {"type": "string"}},
+    "ret": {"type": "object"},
+    "events": {"type": "array"},
+    "slices": {"type": "object"}
+  }
+}

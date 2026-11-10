@@ -20,6 +20,8 @@ function verdictText(input) {
         showCsi: true,
         showBrent: true,
         pct: event.pct == null ? null : event.pct,
+        pct_lo: event.pct_lo == null ? null : event.pct_lo,
+        pct_hi: event.pct_hi == null ? null : event.pct_hi,
         q: event.q == null ? null : event.q,
         lang: input.lang,
       });
@@ -50,8 +52,13 @@ function verdictText(input) {
       ? input.nMideast + " of " + input.nEvents + " built-in dates are tagged Middle East, and all of them were chosen after the prices were known. "
       : input.nEvents + " 个内置日期里有 " + input.nMideast + " 个标成中东，而且都是事后挑选的。";
   }
-  const pack = input.placebo;
-  if (pack) {
+  const model = input.nullModel;
+  if (model) {
+    text += en
+      ? "The published percentile is a stationary bootstrap, block " + model.block + ", " + model.reps + " draws, seed " + model.seed + ". A leave-out column is shown with its own n and is not this percentile. "
+      : "公布的分位是 stationary bootstrap，block=" + model.block + "，" + model.reps + " 次，种子 " + model.seed + "。留出对照单独标 n，不当作这个分位。";
+  } else if (input.placebo) {
+    const pack = input.placebo;
     text += en
       ? "The gold percentile uses " + pack.n_draw + " ordinary months drawn from " + pack.n_pool + " complete windows that do not contain an event month, seed " + pack.seed + "."
       : "分位见总表最后一列，用的是种子 " + pack.seed + " 抽出的 " + pack.n_draw + " 个普通月份，母体是 " + pack.n_pool + " 个不包含事件月的完整窗口。";

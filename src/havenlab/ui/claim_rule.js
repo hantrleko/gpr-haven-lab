@@ -1,3 +1,12 @@
+function claimIntervalTail(input, low, high) {
+  const pct = input.pct;
+  if (pct == null || !isFinite(Number(pct))) return false;
+  const lo = input.pct_lo == null ? Number(pct) : Number(input.pct_lo);
+  const hi = input.pct_hi == null ? Number(pct) : Number(input.pct_hi);
+  const cutLo = low == null ? 0.20 : low;
+  const cutHi = high == null ? 0.80 : high;
+  return (lo > 0 && hi <= cutLo) || (lo >= cutHi && hi < 1);
+}
 function claimRule(input) {
   const g = input.g;
   const c = input.c;
@@ -5,7 +14,8 @@ function claimRule(input) {
   const en = input.lang === "en";
   const pct = input.pct;
   const q = input.q;
-  const mid = pct != null && pct >= 0.20 && pct <= 0.80;
+  const tailOk = claimIntervalTail(input);
+  const mid = pct != null && !tailOk;
   const qFail = q != null && q > 0.10;
   const qText = q == null ? "" : (Math.round(Number(q) * 100) / 100).toFixed(2);
   let tone = "";
@@ -19,7 +29,7 @@ function claimRule(input) {
     ? "The gold CAR q-value over the five sessions after the event is " + qText + ". "
     : "事件后 5 个交易日黄金 CAR 的 q 值为 " + qText + "。";
   if (input.anchorIsGold && g > 0 && c < 0 && input.showCsi) {
-    const tail = pct != null && !mid;
+    const tail = tailOk;
     if (tail && !qFail) {
       claim = en
         ? "Gold rises while CSI 300 falls, which matches a safe-haven split in prices. "
@@ -69,5 +79,6 @@ function claimRule(input) {
   } else if (qFail) {
     claim += carFail;
   }
+  if (input.exploratory) claim = (en ? "[Exploratory] " : "[探索性]") + claim;
   return {tone: tone, claim: claim};
 }

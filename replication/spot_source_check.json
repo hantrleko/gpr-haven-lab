@@ -1,0 +1,10 @@
+{
+  "checked_at": "2026-11-10",
+  "published_source": "sina:XAU",
+  "published_file": "data/raw/gold_lbma_fred.csv",
+  "fred_GOLDAMGBD228NLBM": "HTTP 404. The series was removed. Not used.",
+  "fred_GOLDPMGBD228NLBM": "HTTP 404. Not used.",
+  "yahoo_XAUUSD": "HTTP 404 in the Phase A probe. Not used.",
+  "stooq_xauusd": "The CSV endpoint returned an HTML page, not prices. Not used.",
+  "decision": "The published spot series stays Sina London gold. A second source switch in this release would move every pin again."
+}

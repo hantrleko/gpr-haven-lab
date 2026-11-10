@@ -48,22 +48,23 @@ class BenchmarkTest(unittest.TestCase):
     def test_known_event_windows(self):
         hormuz = event_window(self.panel, "2026-03", 6)
         self.assertFalse(hormuz["partial"])
-        self.assertAlmostEqual(hormuz["cum"]["gold"], -15.79, delta=0.05)
+        self.assertAlmostEqual(hormuz["cum"]["gold"], -17.12, delta=0.05)
         self.assertAlmostEqual(hormuz["cum"]["brent"], 22.19, delta=0.05)
         self.assertAlmostEqual(hormuz["cum"]["csi"], -1.83, delta=0.05)
-        self.assertAlmostEqual(hormuz["haven_after"]["score"], 46.85, delta=0.15)
+        self.assertAlmostEqual(hormuz["haven_after"]["score"], 46.81, delta=0.15)
 
         ukraine = event_window(self.panel, "2022-02", 6)
         self.assertFalse(ukraine["partial"])
-        self.assertAlmostEqual(ukraine["cum"]["gold"], -1.80, delta=0.05)
-        self.assertAlmostEqual(ukraine["haven_after"]["score"], 69.44, delta=0.15)
+        self.assertAlmostEqual(ukraine["cum"]["gold"], -1.76, delta=0.05)
+        self.assertAlmostEqual(ukraine["haven_after"]["score"], 68.97, delta=0.15)
 
         tail = event_window(self.panel, "2026-09", 6)
         self.assertTrue(tail["partial"])
         self.assertEqual(tail["n_after"], 1)
 
     def test_gold_jump_is_the_futures_print(self):
-        jumps = gold_daily_jumps(self.daily["gold"], 2)
+        futures = self.daily.get("gold_fut", self.daily["gold"])
+        jumps = gold_daily_jumps(futures, 2)
         self.assertEqual(jumps[0]["date"], "2026-01-30")
         self.assertAlmostEqual(jumps[0]["log_return"], -11.40, delta=0.08)
         self.assertEqual(jumps[1]["date"], "2013-04-15")

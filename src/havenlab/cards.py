@@ -52,15 +52,17 @@ def _q_text(q: float) -> str:
     return f"{math.floor(float(q) * 100 + 0.5) / 100:.2f}"
 
 
-def split_claim(g: float, c: float, pct: float | None, q: float | None) -> str:
+def split_claim(g: float, c: float, pct: float | None, q: float | None, pct_lo: float | None = None, pct_hi: float | None = None) -> str:
     """Chinese gold-up / CSI-down branch of claim_rule.js."""
-    mid = pct is not None and 0.20 <= float(pct) <= 0.80
+    from havenlab.claim_text import interval_tail
+
+    tail_ok = interval_tail(pct, pct_lo, pct_hi)
+    mid = pct is not None and not tail_ok
     q_fail = q is not None and float(q) > 0.10
     q_text = "" if q is None else _q_text(float(q))
     car_fail = f"事件日起 5 个交易日的黄金 CAR 未通过多重比较校正（q={q_text}）。"
     car_pass = f"事件后 5 个交易日黄金 CAR 的 q 值为 {q_text}。"
-    tail = pct is not None and not mid
-    if tail and not q_fail:
+    if tail_ok and not q_fail:
         claim = "黄金上涨而沪深300下跌，价格路径与避险分流一致。"
         if q is not None:
             claim += car_pass
@@ -152,7 +154,36 @@ def export_cards(lab: dict, dest: Path) -> None:
         line, tail = _sentence(window, pct, q)
         fig.text(0.08, 0.70, line, fontsize=18, color="#1c1915")
         fig.text(0.08, 0.66, tail, fontsize=16, color="#3a342c")
-        ax = fig.add_axes((0.10, 0.18, 0.82, 0.42))
+        after = window.get("haven_after") or {}
+        score = after.get("score")
+        se = after.get("se")
+        if score is not None and se is not None:
+            lo = float(after.get("ci_lo"))
+            hi = float(after.get("ci_hi"))
+            short = int(window.get("n_after") or 0) < 24
+            if short or not (lo > 60 or hi < 45):
+                bar_color = "#8a8478"
+            elif lo > 60:
+                bar_color = "#0072B2"
+            else:
+                bar_color = "#D55E00"
+            note = f"强度 {score:.0f} [{lo:.0f}, {hi:.0f}]"
+            if short:
+                note += " · 样本不足以判定"
+            elif lo < 50 < hi:
+                note += " · 区间跨过 50，不解读为强或弱"
+            fig.text(0.08, 0.62, note, fontsize=13, color="#3a342c")
+            bar = fig.add_axes((0.10, 0.585, 0.55, 0.012))
+            bar.set_xlim(0, 100)
+            bar.set_ylim(0, 1)
+            bar.axvspan(max(0.0, lo), min(100.0, hi), color=bar_color, alpha=0.35)
+            bar.plot([score], [0.5], marker="|", color="#1c1915", markersize=10)
+            bar.axvline(50, color="#c8c2b6", lw=0.6)
+            bar.set_yticks([])
+            bar.set_xticks([])
+            for spine in bar.spines.values():
+                spine.set_visible(False)
+        ax = fig.add_axes((0.10, 0.16, 0.82, 0.40))
         ax.set_facecolor("#fbfaf6")
         if gold:
             ax.plot(gold[0], gold[1], color="#C47B12", lw=2.4, label="黄金")

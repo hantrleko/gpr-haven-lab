@@ -93,8 +93,24 @@
   .reset-btn { border-color: var(--accent); color: var(--accent); margin-left: 0; }
   .busy { margin: -6px 0 12px; color: var(--accent); font-size: 14px; }
   .busy[hidden] { display: none; }
-  .meter { height: 8px; background: #eceae4; margin-top: 8px; }
+  .meter { position: relative; height: 8px; background: #eceae4; margin-top: 8px; }
   .meter i { display: block; height: 100%; width: 0; }
+  #meter-band { position: absolute; top: 0; height: 100%; background: rgba(28, 25, 21, 0.16); }
+  #meter-fill { position: relative; }
+  .basis-warn { margin: 8px 0 0; padding: 8px 10px; background: #f4e2a8; color: #1c1915; border: 1px solid #e0c56a; }
+  .basis-warn[hidden] { display: none; }
+  .freshness { margin: 18px 0 6px; color: var(--muted); font-size: 13px; }
+  .freshness.stale { background: #f4e2a8; color: #1c1915; padding: 4px 8px; }
+  .chart-host[aria-busy="true"] {
+    min-height: 88px;
+    background: linear-gradient(90deg, #eceae4 0%, #f7f4ee 45%, #eceae4 100%);
+    background-size: 200% 100%;
+    animation: chart-shimmer 1.2s linear infinite;
+  }
+  @keyframes chart-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+  }
   details.fold { background: var(--paper); border: 1px solid var(--line); margin: 0 0 14px; }
   details.fold summary { cursor: pointer; padding: 12px 14px; font-weight: 650; }
   details.fold .fold-body { padding: 0 14px 14px; }
@@ -114,3 +130,7 @@
     .scroll-x svg { min-width: 720px; }
     #heat svg { width: auto; min-width: 720px; }
   }
+  .cond-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; }
+  .cond-row { margin-bottom: 16px; }
+  #haven-versions table, #macro-status table { width: 100%; border-collapse: collapse; }
+  #haven-versions td, #macro-status td, #haven-versions th { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: left; }

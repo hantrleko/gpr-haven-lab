@@ -7,3 +7,7 @@ data/raw/*.metadata.json
 data/raw/*.xls
 data/raw/*.xlsx
 _lbma_tmp.csv
+output/var_boot_cache.json
+app/
+figs/*.png
+figs/**/*.png

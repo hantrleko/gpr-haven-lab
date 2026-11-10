@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://hantrleko.github.io/gpr-haven-lab/sitemap.xml

@@ -134,3 +134,20 @@
   .cond-row { margin-bottom: 16px; }
   #haven-versions table, #macro-status table { width: 100%; border-collapse: collapse; }
   #haven-versions td, #macro-status td, #haven-versions th { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+  .state-label { font-size: 22px; font-weight: 650; margin: 8px 0; }
+  .state-bars { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .state-row { display: grid; grid-template-columns: 5.5rem 1fr auto; gap: 8px; align-items: center; }
+  .state-meter { height: 8px; background: var(--line); }
+  .state-meter i { display: block; height: 8px; background: var(--accent); }
+  .ribbon { display: flex; flex-wrap: wrap; gap: 1px; margin-top: 10px; }
+  .ribbon i { width: 8px; height: 14px; display: block; }
+  .archive-mark { margin: 18px 0 0; }
+  #transition-table table, #analog-list table, #crowding-table table, #validation-body table { width: 100%; border-collapse: collapse; }
+  #transition-table td, #analog-list td, #validation-body td, #validation-body th, #crowding-table td, #crowding-table th { border-bottom: 1px solid var(--line); padding: 4px 6px; text-align: left; }
+  @media (max-width: 420px) {
+    .state-label { font-size: 20px; }
+    .state-row { grid-template-columns: 4.5rem 1fr auto; }
+  }
+  @media (min-width: 800px) {
+    .state-bars { grid-template-columns: 1fr 1fr; }
+  }

@@ -16,8 +16,8 @@
   "placebo": "Published percentile is a stationary bootstrap, seed 20261110, 2000 draws, block length equal to the window. The leave-out column keeps seed 20261013 and at most 120 blocked windows.",
   "lp": "direct local projection of cumulative returns on a 1 SD shock; state split uses lagged high-GPR",
   "car": "mean-adjusted daily CAR, estimation [-120,-20], BH q across events",
-  "lab_version": "V2.4.0",
-  "api_version": "2.4.0",
+  "lab_version": "V2.5.0",
+  "api_version": "2.5.0",
   "var": "recursive, GPR difference ordered first; AIC lag in 1..3; cumulative orthogonal IRF",
   "redistribution": "Yahoo and Sina raw files are not covered by the code license and are not redistributed from this repo."
 }

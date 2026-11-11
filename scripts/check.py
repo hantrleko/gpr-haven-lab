@@ -17,6 +17,7 @@ def main() -> int:
     subprocess.check_call(["node", "--check", str(ROOT / "src" / "havenlab" / "ui" / "verdict_rule.js")], cwd=ROOT)
     subprocess.check_call(["node", "--check", str(ROOT / "src" / "havenlab" / "ui" / "app.js")], cwd=ROOT)
     subprocess.check_call(["node", "--check", str(ROOT / "src" / "havenlab" / "ui" / "phase_b.js")], cwd=ROOT)
+    subprocess.check_call(["node", "--check", str(ROOT / "src" / "havenlab" / "ui" / "phase_c.js")], cwd=ROOT)
     subprocess.check_call(["node", str(ROOT / "tests" / "test_claim_rule.js")], cwd=ROOT)
     subprocess.check_call(["node", str(ROOT / "tests" / "test_verdict_rule.js")], cwd=ROOT)
     subprocess.check_call(["node", str(ROOT / "tests" / "test_haven_se.js")], cwd=ROOT)

@@ -1239,6 +1239,13 @@ def build_lab(today: pd.Timestamp | None = None, from_derived: bool = False, fas
     except Exception as exc:
         print(f"Phase B block failed: {exc}")
         raise
+    from havenlab.phase_c import compute_phase_c
+
+    try:
+        lab.update(compute_phase_c(ROOT, panel, events, fast=fast))
+    except Exception as exc:
+        print(f"Phase C block failed: {exc}")
+        raise
     return lab
 
 
@@ -1496,6 +1503,10 @@ def web_payload(lab: dict) -> dict:
         "daily_quantile": lab.get("daily_quantile") or {},
         "car_robust": lab.get("car_robust") or {},
         "macro_status": lab.get("macro_status") or {},
+        "regime": lab.get("regime") or {},
+        "validation": lab.get("validation") or {},
+        "crowding": lab.get("crowding") or {},
+        "forecast": lab.get("forecast") or {},
         "slices": lab.get("slices") or {},
         "daily": lab["web_daily"],
         "windows": _window_corr_payload(panel),

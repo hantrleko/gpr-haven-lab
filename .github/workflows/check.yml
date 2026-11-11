@@ -21,6 +21,7 @@ jobs:
           node --check src/havenlab/ui/verdict_rule.js
           node --check src/havenlab/ui/app.js
           node --check src/havenlab/ui/phase_b.js
+          node --check src/havenlab/ui/phase_c.js
           node tests/test_claim_rule.js
           node tests/test_verdict_rule.js
           node tests/test_haven_se.js
@@ -29,7 +30,7 @@ jobs:
       - name: Card sentence and event sources
         run: |
           pip install pandas numpy statsmodels matplotlib
-          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest tests.test_haven_se tests.test_gold_basis.RollJumpTest.test_january_2026_gap_is_recorded_and_spot_month_is_kept tests.test_placebo_bootstrap tests.test_downside tests.test_conditional_lp tests.test_spec_curve tests.test_static_claim
+          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest tests.test_haven_se tests.test_gold_basis.RollJumpTest.test_january_2026_gap_is_recorded_and_spot_month_is_kept tests.test_placebo_bootstrap tests.test_downside tests.test_conditional_lp tests.test_spec_curve tests.test_static_claim tests.test_regime tests.test_validation tests.test_sources
 
   rebuild:
     runs-on: ubuntu-latest
@@ -40,6 +41,8 @@ jobs:
           python-version: "3.12"
       - name: Install the locked requirements
         run: pip install -r requirements.txt
+      - name: Source availability
+        run: python fetch_data.py --sources-check --strict
       - name: Rebuild published JSON and the page from the monthly panel
         run: python build.py --from-derived
       - name: Schema
@@ -65,6 +68,7 @@ jobs:
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("e/*/index.html")]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("en/e/*/index.html")]
           paths += [str(path).replace("\\", "/") for path in Path("docs/api/v2").rglob("*.json")]
+          paths += [str(path).replace("\\", "/") for path in Path("docs/state").glob("*.html")]
           subprocess.check_call(["git", "add", "-N", "--", *paths])
           code = subprocess.call(["git", "diff", "--exit-code", "--", *paths])
           if code:

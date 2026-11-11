@@ -1,0 +1,57 @@
+{
+  "model": {
+    "n": 138,
+    "pinball": 2.2331,
+    "pit_ks_p": 0.0053,
+    "coverage_80": 0.6739
+  },
+  "baselines": {
+    "unconditional": {
+      "available": true,
+      "n": 138,
+      "pinball_model": 2.2331,
+      "pinball_base": 2.0071,
+      "improvement": -0.1126,
+      "dm": {
+        "n": 138,
+        "mean": 0.225972,
+        "se": 0.08934,
+        "p": 0.0114
+      }
+    },
+    "gpr": {
+      "available": true,
+      "n": 138,
+      "pinball_model": 2.2331,
+      "pinball_base": 1.9777,
+      "improvement": -0.1291,
+      "dm": {
+        "n": 138,
+        "mean": 0.25541,
+        "se": 0.116047,
+        "p": 0.0277
+      }
+    },
+    "real_rate": {
+      "available": false,
+      "improvement": null,
+      "dm": {
+        "p": null
+      }
+    }
+  },
+  "gates": {
+    "improvement_at_least_8pct": false,
+    "pit_ks_p_above_0_10": false,
+    "coverage_in_70_90": false,
+    "dm_p_below_0_10_and_better_than_each_baseline": false,
+    "all_three_baselines_present": false,
+    "pass": false
+  },
+  "k": 24,
+  "horizon_months": 3,
+  "start": "2015-01",
+  "parameter_rule": "每年 1 月冻结上一年 12 月之前的 z 分矩、GPR 75 分位和实际利率三分位。k=24，不按损失挑选。",
+  "negative_template": "若 pinball loss 改善 < 8% 或 PIT 偏离，本页将直接声明：本状态机对未来 3 个月的黄金收益分布没有可靠的条件化能力，此前的“避险分流”描述仅限于同期价格路径，不构成任何前瞻性判断。",
+  "declare_no_skill": true
+}

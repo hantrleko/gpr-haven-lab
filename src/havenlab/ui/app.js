@@ -1047,6 +1047,7 @@ function render() {
   fillVerdict();
   fillGoldNote();
   if (typeof drawPhaseB === "function") drawPhaseB(event, stats);
+  if (typeof drawPhaseC === "function") drawPhaseC(event);
   const card = document.getElementById("card-link");
   if (card) {
     const builtIn = LAB.events.some(item => item.id === event.id);

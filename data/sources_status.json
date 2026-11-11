@@ -1,0 +1,114 @@
+{
+  "checked_at": "2026-11-11T04:52:43Z",
+  "sources": [
+    {
+      "id": "gpr",
+      "role": "critical",
+      "url": "https://www.matteoiacoviello.com/gpr_files/data_gpr_daily_recent.xls",
+      "checked_at": "2026-11-11T04:50:11Z",
+      "http_status": 200,
+      "bytes": 3276288,
+      "status": "ok"
+    },
+    {
+      "id": "fred_lbma_am",
+      "role": "probe",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GOLDAMGBD228NLBM",
+      "checked_at": "2026-11-11T04:50:13Z",
+      "status": "failed",
+      "error": "HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=25)"
+    },
+    {
+      "id": "fred_lbma_pm",
+      "role": "probe",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GOLDPMGBD228NLBM",
+      "checked_at": "2026-11-11T04:50:38Z",
+      "status": "failed",
+      "error": "HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=25)"
+    },
+    {
+      "id": "yahoo_xauusd",
+      "role": "probe",
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart/XAUUSD=X?interval=1d&range=5d",
+      "checked_at": "2026-11-11T04:51:05Z",
+      "http_status": 404,
+      "bytes": 108,
+      "status": "failed"
+    },
+    {
+      "id": "stooq_xauusd",
+      "role": "probe",
+      "url": "https://stooq.com/q/d/l/?s=xauusd&i=d",
+      "checked_at": "2026-11-11T04:51:07Z",
+      "http_status": 200,
+      "bytes": 796,
+      "status": "blocked"
+    },
+    {
+      "id": "fred_dfii10",
+      "role": "state",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFII10",
+      "checked_at": "2026-11-11T04:51:08Z",
+      "status": "failed",
+      "error": "HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=25)"
+    },
+    {
+      "id": "fred_dtwexbgs",
+      "role": "state",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS",
+      "checked_at": "2026-11-11T04:51:34Z",
+      "status": "failed",
+      "error": "HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=25)"
+    },
+    {
+      "id": "fred_vixcls",
+      "role": "state",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS",
+      "checked_at": "2026-11-11T04:52:00Z",
+      "status": "failed",
+      "error": "HTTPSConnectionPool(host='fred.stlouisfed.org', port=443): Read timed out. (read timeout=25)"
+    },
+    {
+      "id": "cftc_gold",
+      "role": "state",
+      "url": "https://publicreporting.cftc.gov/resource/6dca-aqww.json?cftc_contract_market_code=088691&$select=report_date_as_yyyy_mm_dd,noncomm_positions_long_all,noncomm_positions_short_all,open_interest_all&$order=report_date_as_yyyy_mm_dd&$limit=5000",
+      "checked_at": "2026-11-11T04:52:25Z",
+      "http_status": 200,
+      "bytes": 313578,
+      "status": "ok",
+      "rows": 1941,
+      "start": "1986-01-15",
+      "end": "2026-11-03"
+    },
+    {
+      "id": "epu_us",
+      "role": "state",
+      "url": "https://www.policyuncertainty.com/media/US_Policy_Uncertainty_Data.xlsx",
+      "checked_at": "2026-11-11T04:52:29Z",
+      "http_status": 200,
+      "bytes": 71283,
+      "status": "ok",
+      "rows": 1523,
+      "columns": [
+        "Year",
+        "Month",
+        "News_Based_Policy_Uncert_Index"
+      ]
+    },
+    {
+      "id": "gep",
+      "role": "probe",
+      "url": "https://www.policyuncertainty.com/media/GEP_Update.xlsx",
+      "checked_at": "2026-11-11T04:52:42Z",
+      "http_status": 404,
+      "bytes": 1699,
+      "status": "failed"
+    }
+  ],
+  "critical_failed": [],
+  "state_failed": [
+    "fred_dfii10",
+    "fred_dtwexbgs",
+    "fred_vixcls"
+  ]
+}

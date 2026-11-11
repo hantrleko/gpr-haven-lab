@@ -1,0 +1,1 @@
+{"issued": "2026-11-11", "state_month": "2026-09", "state": null, "analog_k": 24, "indep_runs": 5, "perm_statistic": "iqr_gold_3m", "perm_p": 0.745, "q10_3m": -9.8, "q50_3m": 1.77, "q90_3m": 7.64, "n": 24, "model_version": "V2.5.0", "validation_pass": false, "resolved": null, "note": "状态月是样本钉里的最后一个完整月，不是发行日当天的行情。", "hash": "2d7854a5332a69ae"}

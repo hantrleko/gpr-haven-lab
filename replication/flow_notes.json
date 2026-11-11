@@ -1,0 +1,6 @@
+{
+  "cot": "CFTC legacy futures-only, COMEX gold 088691, non-commercial net divided by open interest, month-end print. cot_pct is a trailing 60-month percentile.",
+  "epu": "Baker, Bloom and Davis news-based US EPU. The global GEP workbook returned HTTP 404 and is not used.",
+  "crowding": "The 0.5 COT + 0.5 ETF blend is not published. ETF flows were not parsed, and a one-leg average would invent the missing half.",
+  "wgc": "Goldhub holdings were not copied. The terms were not checked, so no WGC series is stored."
+}

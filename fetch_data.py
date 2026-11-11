@@ -337,7 +337,25 @@ def main() -> None:
         action="store_true",
         help="Also download silver, VIX, 10-year yield, and 10-year TIPS.",
     )
+    parser.add_argument(
+        "--sources-check",
+        action="store_true",
+        help="Probe each external source once and write data/sources_status.json.",
+    )
+    parser.add_argument("--strict", action="store_true", help="Exit non-zero when a critical source is down.")
     args = parser.parse_args()
+    if args.sources_check:
+        sys.path.insert(0, str(ROOT / "src"))
+        from havenlab.source_check import write_status
+
+        status = write_status(ROOT / "data" / "sources_status.json")
+        for row in status["sources"]:
+            print(f"{row['id']}: {row['status']} http={row.get('http_status')} start={row.get('start')} rows={row.get('rows')}")
+        if status["state_failed"]:
+            print("STATE SOURCE FAILED: " + ", ".join(status["state_failed"]), file=sys.stderr)
+        if args.strict and status["critical_failed"]:
+            raise SystemExit("critical source failed: " + ", ".join(status["critical_failed"]))
+        return
     fetch_gpr()
     fetch_yahoo(YAHOO_EXTENDED if args.extended else None)
     fetch_csi()

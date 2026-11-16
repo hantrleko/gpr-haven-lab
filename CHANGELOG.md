@@ -104,3 +104,7 @@
 ## 2026-10-13 · V0.1
 
 （见 git 历史。）
+
+## 2026-11-16 weekly
+
+Sample pin moved. See data/sample_pin.json.

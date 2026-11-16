@@ -4,12 +4,12 @@
   "api_version": "2.5.0",
   "sample": [
     "2007-08",
-    "2026-09"
+    "2026-10"
   ],
-  "built": "2026-10-13",
-  "payload_hash": "80bf0bf0c7c189c2",
+  "built": "2026-11-16",
+  "payload_hash": "cdc60322f3a42738",
   "endpoints": {
-    "monthly": "lab_data_monthly.80bf0bf0c7c189c2.json",
+    "monthly": "lab_data_monthly.cdc60322f3a42738.json",
     "monthly_alias": "lab_data_monthly.json",
     "daily": "lab_data_daily.json",
     "full": "lab_data.json",

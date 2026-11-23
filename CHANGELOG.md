@@ -108,3 +108,7 @@
 ## 2026-11-16 weekly
 
 Sample pin moved. See data/sample_pin.json.
+
+## 2026-11-23 weekly
+
+Sample pin moved. See data/sample_pin.json.

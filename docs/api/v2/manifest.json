@@ -10,8 +10,8 @@
     "2007-08",
     "2026-10"
   ],
-  "built": "2026-11-16",
-  "payload_hash": "cdc60322f3a42738",
+  "built": "2026-11-23",
+  "payload_hash": "e862d7711db05066",
   "registry_hash": "ac8da66f0c93f0ee",
   "update": "weekly",
   "license": "MIT",
@@ -22,7 +22,7 @@
     "events": "api/v2/events.json",
     "event": "api/v2/event/{id}.json",
     "panel": "api/v2/panel.json",
-    "panel_hashed": "api/v2/panel.c35bd43f5fec197d.json",
+    "panel_hashed": "api/v2/panel.50923bba409db45b.json",
     "panel_core": "api/v2/panel.core.json",
     "daily": "api/v2/daily/{id}.json"
   }

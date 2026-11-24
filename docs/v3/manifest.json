@@ -4,8 +4,18 @@
   "files": {
     "series": {
       "path": "series.json",
-      "sha256": "4252e9a221ed99e8e0a0ba602d908b15fe8126aec056ae48ef69459069c01ea5",
-      "bytes": 921202
+      "sha256": "cf938695b32b534d8378545f1b2f0b101b2720f19b761a964af2dcb9dfe28761",
+      "bytes": 921193
+    },
+    "reports": {
+      "path": "reports.json",
+      "sha256": "815f232dcfa59938498342e3f49e485ea847fc63bc8f9e1c3d00963bade1c079",
+      "bytes": 353282
+    },
+    "rules": {
+      "path": "rules.json",
+      "sha256": "7af73510b8204060f85dbb4e9a4ce3c0dd27843f998e2321f79a252e4e1e3872",
+      "bytes": 9054
     }
   }
 }

@@ -1,0 +1,306 @@
+{
+  "version": "3.0.0",
+  "horizons": [
+    7,
+    30,
+    91
+  ],
+  "primary": 30,
+  "horizon_names": {
+    "7": {
+      "zh": "一周",
+      "en": "one week"
+    },
+    "30": {
+      "zh": "一个月",
+      "en": "one month"
+    },
+    "91": {
+      "zh": "三个月",
+      "en": "three months"
+    }
+  },
+  "min_history": 250,
+  "family_alpha": 0.2,
+  "lean_hi": 0.8,
+  "lean_lo": 0.2,
+  "bench_drop_p": 0.2,
+  "gpr": {
+    "window_days": 30,
+    "lookback_days": 3650,
+    "min_days": 5,
+    "very_high": 0.9,
+    "high": 0.75
+  },
+  "havens": [
+    "gold",
+    "silver",
+    "jpy",
+    "chf",
+    "ust",
+    "btc",
+    "dxy"
+  ],
+  "benchmarks": [
+    "spx",
+    "csi",
+    "hsi"
+  ],
+  "default_benchmark": "spx",
+  "shocks": [
+    "brent"
+  ],
+  "futures_note_assets": [
+    "silver",
+    "brent"
+  ],
+  "latest_days": 30,
+  "labels": {
+    "clear_up": {
+      "zh": "明显走强",
+      "en": "Clearly stronger"
+    },
+    "lean_up": {
+      "zh": "偏强",
+      "en": "Somewhat stronger"
+    },
+    "normal": {
+      "zh": "常态",
+      "en": "Within the usual range"
+    },
+    "lean_down": {
+      "zh": "偏弱",
+      "en": "Somewhat weaker"
+    },
+    "clear_down": {
+      "zh": "明显走弱",
+      "en": "Clearly weaker"
+    },
+    "incomplete": {
+      "zh": "窗口未结束",
+      "en": "Window still open"
+    },
+    "short_history": {
+      "zh": "历史太短",
+      "en": "History too short"
+    },
+    "missing": {
+      "zh": "无数据",
+      "en": "No data"
+    }
+  },
+  "bench_states": {
+    "clear_drop": {
+      "zh": "明显下跌",
+      "en": "fell sharply"
+    },
+    "small_drop": {
+      "zh": "小幅下跌",
+      "en": "fell modestly"
+    },
+    "no_drop": {
+      "zh": "没有下跌",
+      "en": "did not fall"
+    },
+    "incomplete": {
+      "zh": "窗口未结束",
+      "en": "window still open"
+    },
+    "missing": {
+      "zh": "无数据",
+      "en": "no data"
+    }
+  },
+  "gpr_states": {
+    "very_high": {
+      "zh": "很高",
+      "en": "very high"
+    },
+    "high": {
+      "zh": "偏高",
+      "en": "elevated"
+    },
+    "normal": {
+      "zh": "一般",
+      "en": "ordinary"
+    },
+    "insufficient": {
+      "zh": "数据不足",
+      "en": "not enough data"
+    }
+  },
+  "grades": {
+    "strong": {
+      "zh": "强",
+      "en": "Strong"
+    },
+    "medium": {
+      "zh": "中",
+      "en": "Moderate"
+    },
+    "weak": {
+      "zh": "弱",
+      "en": "Weak"
+    },
+    "none": {
+      "zh": "无",
+      "en": "None"
+    }
+  },
+  "headlines": {
+    "clear_drop_clear": {
+      "grade": "strong",
+      "zh": "{bench}明显下跌，{clear}明显走强，起到了避险作用。",
+      "en": "{bench} fell sharply while {clear} rose clearly. {clear_verb} as a safe haven."
+    },
+    "small_drop_clear": {
+      "grade": "medium",
+      "zh": "{bench}小幅下跌，{clear}明显走强，起到了一定的避险作用。",
+      "en": "{bench} fell modestly while {clear} rose clearly. {clear_verb} as a partial safe haven."
+    },
+    "drop_lean_many": {
+      "grade": "medium",
+      "zh": "{bench}下跌，{lean}走强，但幅度不足以排除偶然。",
+      "en": "{bench} fell and {lean} rose, but not by enough to rule out chance."
+    },
+    "drop_lean_one": {
+      "grade": "weak",
+      "zh": "{bench}下跌，{lean}走强，但幅度不足以排除偶然。",
+      "en": "{bench} fell and {lean} rose, but not by enough to rule out chance."
+    },
+    "drop_none": {
+      "grade": "none",
+      "zh": "{bench}下跌，但没有资产明显走强，这次看不到避险效果。",
+      "en": "{bench} fell, but no asset rose clearly. No safe-haven effect shows up this time."
+    },
+    "no_drop": {
+      "grade": "none",
+      "zh": "{bench}没有下跌，这次不构成避险考验。",
+      "en": "{bench} did not fall, so this was not a safe-haven test."
+    },
+    "incomplete": {
+      "grade": "none",
+      "zh": "一个月的窗口还没结束，先不下结论。",
+      "en": "The one-month window is still open, so there is no verdict yet."
+    },
+    "no_bench": {
+      "grade": "none",
+      "zh": "{bench}在这段时间没有数据，无法判断。",
+      "en": "{bench} has no data for this period, so there is no verdict."
+    }
+  },
+  "clear_verb": {
+    "one": {
+      "en": "It acted"
+    },
+    "many": {
+      "en": "They acted"
+    }
+  },
+  "sentences": {
+    "pressure": {
+      "zh": "事件后 30 天的地缘风险指数均值为 {gpr}，高于过去十年里 {pct}% 的时候，属于{state}水平。",
+      "en": "The geopolitical risk index averaged {gpr} over the 30 days after the date, higher than {pct}% of the past ten years. That is {state}."
+    },
+    "pressure_insufficient": {
+      "zh": "这段时间的地缘风险指数数据不足，无法判断压力水平。",
+      "en": "There is not enough geopolitical risk data for this period to judge the pressure level."
+    },
+    "shock": {
+      "zh": "{asset}一个月{dir} {ret}%，{rank}。",
+      "en": "{asset} moved {ret}% over one month, {rank}."
+    },
+    "bench": {
+      "zh": "{bench}一个月{dir} {ret}%，{rank}。",
+      "en": "{bench} moved {ret}% over one month, {rank}."
+    },
+    "history_row": {
+      "zh": "在 {n} 个内置事件里，{asset}明显走强 {clear} 次、偏强 {lean} 次，一个月收益中位数 {median}%。",
+      "en": "Across {n} built-in events, {asset} rose clearly {clear} times and somewhat {lean} times. Its median one-month return was {median}%."
+    },
+    "history_none": {
+      "zh": "{asset}在内置事件里没有可评级的窗口。",
+      "en": "{asset} has no rated window among the built-in events."
+    },
+    "evidence": {
+      "zh": "证据等级：{grade}。等级只说明这次走势在历史上有多少见，不说明原因。",
+      "en": "Evidence: {grade}. The grade says how unusual the moves were, not why they happened."
+    },
+    "pressure_latest": {
+      "zh": "最近 30 天的地缘风险指数均值为 {gpr}，高于过去十年里 {pct}% 的时候，属于{state}水平。",
+      "en": "The geopolitical risk index averaged {gpr} over the last 30 days, higher than {pct}% of the past ten years. That is {state}."
+    }
+  },
+  "dir_words": {
+    "up": {
+      "zh": "上涨",
+      "en": "up"
+    },
+    "down": {
+      "zh": "下跌",
+      "en": "down"
+    },
+    "flat": {
+      "zh": "持平",
+      "en": "flat"
+    }
+  },
+  "caveats": {
+    "no_forecast": {
+      "zh": "本站预先登记的样本外检验没有通过。历史对照只描述过去，不构成预测。",
+      "en": "This site's pre-registered out-of-sample test did not pass. The historical comparison describes the past and is not a forecast."
+    },
+    "hindsight_preset": {
+      "zh": "内置事件的日期是看过行情之后挑的，结果会偏乐观。",
+      "en": "The built-in dates were picked after the prices were known, so results lean optimistic."
+    },
+    "hindsight_custom": {
+      "zh": "如果这个日期是看过行情之后挑的，结果会偏乐观。",
+      "en": "If you picked this date after seeing the prices, the results lean optimistic."
+    },
+    "multi": {
+      "zh": "同时看了 {k} 个资产，偶然有一个冲到前列的机会更大，所以「明显走强」的门槛已收紧到历史上最强的 {top}%。",
+      "en": "{k} assets were checked at once, which raises the chance that one stands out by luck. The bar for clearly stronger is raised to the strongest {top}% of past moves."
+    },
+    "incomplete": {
+      "zh": "一个月的窗口还没结束，数字会继续变。",
+      "en": "The one-month window is still open, so the numbers will keep changing."
+    },
+    "unrated": {
+      "zh": "{assets}因为历史太短或缺数据没有评级。",
+      "en": "{assets} could not be rated because of short history or missing data."
+    },
+    "futures": {
+      "zh": "{assets}用的是连续期货，换月日可能出现跳变。",
+      "en": "{assets} use continuous futures, which can jump on roll dates."
+    },
+    "gpr_lag": {
+      "zh": "地缘风险指数的数据止于 {last}，早于窗口结束。",
+      "en": "Geopolitical risk data end on {last}, before the window closes."
+    },
+    "no_test": {
+      "zh": "{bench}没有下跌，资产走强不能说明避险作用。",
+      "en": "{bench} did not fall, so rising assets do not show a safe-haven role."
+    }
+  },
+  "list_join": {
+    "zh": "、",
+    "en": ", ",
+    "en_last": " and "
+  },
+  "rank": {
+    "weaker": {
+      "zh": "弱于历史上 {x}% 的一个月走势",
+      "en": "weaker than {x}% of its past one-month moves"
+    },
+    "stronger": {
+      "zh": "强于历史上 {x}% 的一个月走势",
+      "en": "stronger than {x}% of its past one-month moves"
+    }
+  },
+  "headline_down_tail": {
+    "zh": "{down}也明显下跌，没有起到避险作用。",
+    "en_one": "{down} also fell clearly and did not act as a safe haven.",
+    "en_many": "{down} also fell clearly and did not act as safe havens."
+  }
+}

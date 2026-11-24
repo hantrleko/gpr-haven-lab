@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from havenlab import engine
 from havenlab.regime import build_regime, causal_percentile
 from havenlab.validation import forecast_table, summarize_walk, walk_forward
 from havenlab.version import LAB_VERSION
@@ -135,7 +136,7 @@ def _forecast_line(regime: dict, validation: dict) -> dict:
             cell = row
             break
     body = {
-        "issued": "2026-11-11",
+        "issued": pd.Timestamp(engine.ASOF).date().isoformat(),
         "state_month": latest.get("month"),
         "state": None if cell is None else cell.get("cell"),
         "analog_k": latest.get("k"),
@@ -200,7 +201,7 @@ def _top_moves(panel: pd.DataFrame) -> list[str]:
 
 
 def _state_note(root: Path, regime: dict, forecast: dict, moves: list[str]) -> None:
-    issued = pd.Timestamp("2026-10-13")
+    issued = pd.Timestamp(engine.ASOF)
     week = issued.isocalendar()
     slug = f"{week.year}-W{int(week.week):02d}"
     folder = root / "docs" / "state"
@@ -235,7 +236,7 @@ def _state_note(root: Path, regime: dict, forecast: dict, moves: list[str]) -> N
 <main>
   <p><a href="../index.html">返回实验室</a> · <a href="index.html">全部笔记</a></p>
   <h1>状态笔记 {slug}</h1>
-  <p>对应构建日 2026-10-13 的样本钉，不是日历上的实时一周。</p>
+  <p>对应构建日 {issued.date().isoformat()} 的样本钉，不是日历上的实时一周。</p>
   <p>{text}</p>
 </main>
 </body>

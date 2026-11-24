@@ -1,6 +1,6 @@
-# 复现包（V2.4.0）
+# 复现包
 
-本目录在每次 `python build.py` 后从 `output/` 同步派生表，便于 Zenodo / 附录引用。
+本目录在每次 `python build.py` 后从 `output/` 同步派生表，便于 Zenodo / 附录引用。周更任务提交整个 `replication/` 和 `output/`，所以 `python build.py --from-derived` 能重建出和发布页一致的 `docs/`。
 
 1. 安装依赖：`pip install -r requirements.txt`
 2. 下载原始数据：`python fetch_data.py`（文件落在 `data/raw/`，不进 git）

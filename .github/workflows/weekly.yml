@@ -48,8 +48,7 @@ jobs:
           else
             python -c "from datetime import date; from pathlib import Path; Path('CHANGELOG.md').open('a', encoding='utf-8').write('\n## %s weekly\n\nSample pin moved. See data/sample_pin.json.\n' % date.today().isoformat())"
           fi
-          git add data/sample_pin.json docs CHANGELOG.md events/registry.json replication/placebo_shift.json registry/forecasts.jsonl
-          if [ -f replication/states_monthly.csv ]; then git add replication/states_monthly.csv; fi
+          git add data/sample_pin.json docs CHANGELOG.md events/registry.json replication output registry/forecasts.jsonl
           git diff --cached --quiet && exit 0
           git commit -m "weekly: rebuild the lab from the sample pin"
           git push

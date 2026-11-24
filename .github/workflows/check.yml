@@ -3,6 +3,7 @@ name: check
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   check:
@@ -29,8 +30,8 @@ jobs:
         run: python -m unittest tests.test_hormuz_pin
       - name: Card sentence and event sources
         run: |
-          pip install pandas numpy statsmodels matplotlib
-          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest tests.test_haven_se tests.test_gold_basis.RollJumpTest.test_january_2026_gap_is_recorded_and_spot_month_is_kept tests.test_placebo_bootstrap tests.test_downside tests.test_conditional_lp tests.test_spec_curve tests.test_static_claim tests.test_regime tests.test_validation tests.test_sources
+          pip install -r requirements.txt
+          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest tests.test_haven_se tests.test_gold_basis.RollJumpTest.test_january_2026_gap_is_recorded_and_spot_month_is_kept tests.test_placebo_bootstrap tests.test_downside tests.test_conditional_lp tests.test_spec_curve tests.test_static_claim tests.test_regime tests.test_validation tests.test_sources tests.test_issue_date
 
   rebuild:
     runs-on: ubuntu-latest

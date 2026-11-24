@@ -10,7 +10,7 @@
 
 在线页面由 `docs/` 发布到 GitHub Pages。本地预览不要直接双击 html，在仓库根目录运行 `python -m http.server -d docs 8891`。首屏加载带内容哈希的月度包，日度序列在 `lab_data_daily.json`。`app/` 不再入库。
 
-数据不是自动日更。样本终点写在 `data/sample_pin.json`，当前是 `2026-09`。普通的 `build.py` 读这个钉，不会把样本延到下一个月。只有 `build.py --asof auto` 可以推进到面板里上一个完整月。
+数据不是自动日更。样本终点写在 `data/sample_pin.json`，周更任务在面板出现上一个完整月后推进它。普通的 `build.py` 读这个钉，不会把样本延到下一个月。只有 `build.py --asof auto` 可以推进到面板里上一个完整月。
 
 ## 重跑（V2.0 推荐流程）
 

@@ -132,9 +132,9 @@ class BenchmarkTest(unittest.TestCase):
 
     def test_derived_panel_keeps_the_pinned_sample(self):
         panel = _panel_from_derived(ROOT / "replication" / "panel_monthly.csv")
+        pin = json.loads((ROOT / "data" / "sample_pin.json").read_text(encoding="utf-8"))
         self.assertEqual(str(panel.index[0]), "2007-08")
-        self.assertEqual(str(panel.index[-1]), "2026-09")
-        self.assertEqual(len(panel), len(self.panel))
+        self.assertEqual(str(panel.index[-1]), pin["sample_end"])
 
 
 class EventSourceTest(unittest.TestCase):

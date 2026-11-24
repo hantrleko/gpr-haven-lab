@@ -1,0 +1,11 @@
+{
+  "schema": "3.0.0-p1",
+  "built": "2026-11-24",
+  "files": {
+    "series": {
+      "path": "series.json",
+      "sha256": "4252e9a221ed99e8e0a0ba602d908b15fe8126aec056ae48ef69459069c01ea5",
+      "bytes": 921202
+    }
+  }
+}

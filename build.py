@@ -22,6 +22,7 @@ from havenlab.figures import export_all
 from havenlab.general import build_general
 from havenlab.latex import write_latex
 from havenlab.publish_b import write_api_v2, write_registry, write_static
+from havenlab.report_v3 import publish_reports
 from havenlab.ui_assemble import load_page
 from havenlab.version import API_VERSION, LAB_VERSION
 
@@ -280,6 +281,7 @@ def main() -> None:
             )
     print(f"Page {docs / 'index.html'}")
     build_general(ROOT, from_derived=args.from_derived)
+    publish_reports(ROOT)
 
 
 if __name__ == "__main__":

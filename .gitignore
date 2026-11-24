@@ -3,6 +3,7 @@ __pycache__/
 .DS_Store
 src/havenlab/_check.js
 data/raw/*.csv
+data/raw/*.json
 data/raw/*.metadata.json
 data/raw/*.xls
 data/raw/*.xlsx

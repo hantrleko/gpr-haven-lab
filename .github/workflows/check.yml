@@ -31,7 +31,7 @@ jobs:
       - name: Card sentence and event sources
         run: |
           pip install -r requirements.txt
-          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest tests.test_haven_se tests.test_gold_basis.RollJumpTest.test_january_2026_gap_is_recorded_and_spot_month_is_kept tests.test_placebo_bootstrap tests.test_downside tests.test_conditional_lp tests.test_spec_curve tests.test_static_claim tests.test_regime tests.test_validation tests.test_sources tests.test_issue_date
+          python -m unittest tests.test_cards_claim tests.test_benchmark.EventSourceTest tests.test_haven_se tests.test_gold_basis.RollJumpTest.test_january_2026_gap_is_recorded_and_spot_month_is_kept tests.test_placebo_bootstrap tests.test_downside tests.test_conditional_lp tests.test_spec_curve tests.test_static_claim tests.test_regime tests.test_validation tests.test_sources tests.test_issue_date tests.test_general
 
   rebuild:
     runs-on: ubuntu-latest
@@ -65,6 +65,7 @@ jobs:
           ]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("lab_data_monthly.*.json")]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("slices.json")]
+          paths += [str(path).replace("\\", "/") for path in Path("docs/v3").glob("*.json")]
           paths += ["docs/sitemap.xml", "docs/robots.txt", "docs/api/v2/manifest.json"]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("e/*/index.html")]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("en/e/*/index.html")]

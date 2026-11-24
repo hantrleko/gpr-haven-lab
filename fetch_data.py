@@ -31,9 +31,16 @@ YAHOO = {
     "hsi.csv": "^HSI",
 }
 YAHOO_EXTENDED = {
-    "silver_si.csv": "SI=F",
     "vix.csv": "^VIX",
     "ust10.csv": "^TNX",
+}
+YAHOO_GENERAL = {
+    "silver_si.csv": "SI=F",
+    "jpy.csv": "JPY=X",
+    "chf.csv": "CHF=X",
+    "ief.csv": "IEF",
+    "btc.csv": "BTC-USD",
+    "spx.csv": "^GSPC",
 }
 FRED_TIPS = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFII10"
 FRED_LBMA = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GOLDAMGBD228NLBM"
@@ -95,6 +102,44 @@ def fetch_yahoo(extra: dict[str, str] | None = None) -> None:
         path = RAW / filename
         frame.to_csv(path, index=False)
         print(f"Wrote {path} ({len(frame)} rows, sha256={_sha256(path)[:12]})")
+
+
+def fetch_general() -> None:
+    """Download the v3 asset panel. Per-symbol failures are recorded, not fatal."""
+    sys.path.insert(0, str(ROOT / "src"))
+    from havenlab.assets import ASSETS_GENERAL
+
+    by_file = {spec["raw_file"]: spec for spec in ASSETS_GENERAL}
+    status = {"fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "assets": []}
+    for filename, symbol in YAHOO_GENERAL.items():
+        spec = by_file.get(filename, {})
+        record = {
+            "id": spec.get("id", filename),
+            "symbol": symbol,
+            "status": "error",
+            "rows": 0,
+            "first": None,
+            "last": None,
+            "error": None,
+        }
+        try:
+            frame = _yahoo_chart(symbol)
+            path = RAW / filename
+            frame.to_csv(path, index=False)
+            record.update(
+                status="ok",
+                rows=len(frame),
+                first=str(frame["datetime_utc"].iloc[0])[:10] if len(frame) else None,
+                last=str(frame["datetime_utc"].iloc[-1])[:10] if len(frame) else None,
+            )
+            print(f"Wrote {path} ({len(frame)} rows, sha256={_sha256(path)[:12]})")
+        except Exception as exc:
+            record["error"] = str(exc)
+            print(f"general {filename} ({symbol}) failed: {exc}", file=sys.stderr)
+        status["assets"].append(record)
+    out = RAW / "general_status.json"
+    out.write_text(json.dumps(status, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"Wrote {out}")
 
 
 def fetch_gpr() -> None:
@@ -335,7 +380,7 @@ def main() -> None:
     parser.add_argument(
         "--extended",
         action="store_true",
-        help="Also download silver, VIX, 10-year yield, and 10-year TIPS.",
+        help="Also download VIX, 10-year yield, and 10-year TIPS.",
     )
     parser.add_argument(
         "--sources-check",
@@ -358,6 +403,7 @@ def main() -> None:
         return
     fetch_gpr()
     fetch_yahoo(YAHOO_EXTENDED if args.extended else None)
+    fetch_general()
     fetch_csi()
     fetch_lbma()
     if args.extended:

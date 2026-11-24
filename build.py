@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from havenlab.cards import export_cards
 from havenlab.engine import build_lab, canvas_payload, split_web_payload, web_payload, write_tables
 from havenlab.figures import export_all
+from havenlab.general import build_general
 from havenlab.latex import write_latex
 from havenlab.publish_b import write_api_v2, write_registry, write_static
 from havenlab.ui_assemble import load_page
@@ -278,6 +279,7 @@ def main() -> None:
                 encoding="utf-8",
             )
     print(f"Page {docs / 'index.html'}")
+    build_general(ROOT, from_derived=args.from_derived)
 
 
 if __name__ == "__main__":

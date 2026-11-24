@@ -1,12 +1,12 @@
 {
-  "built": "2026-10-13",
-  "sample_pin": "2026-09",
+  "built": "2026-11-24",
+  "sample_pin": "2026-10",
   "sample": [
     "2007-08",
-    "2026-09"
+    "2026-10"
   ],
   "gpr": "https://www.matteoiacoviello.com/gpr_files/data_gpr_daily_recent.xls",
-  "gold": "Spot XAU via spot file. Yahoo Finance GC=F is the futures control, not the published series.",
+  "gold": "Spot XAU via sina:XAU. Yahoo Finance GC=F is the futures control, not the published series.",
   "brent": "Yahoo Finance BZ=F, ICE Brent front future",
   "dxy": "Yahoo Finance DX-Y.NYB, ICE US Dollar Index",
   "hsi": "Yahoo Finance ^HSI",

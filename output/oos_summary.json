@@ -1,35 +1,35 @@
 {
   "model": {
-    "n": 138,
-    "pinball": 2.2331,
-    "pit_ks_p": 0.0053,
-    "coverage_80": 0.6739
+    "n": 139,
+    "pinball": 2.2252,
+    "pit_ks_p": 0.0059,
+    "coverage_80": 0.6763
   },
   "baselines": {
     "unconditional": {
       "available": true,
-      "n": 138,
-      "pinball_model": 2.2331,
-      "pinball_base": 2.0071,
-      "improvement": -0.1126,
+      "n": 139,
+      "pinball_model": 2.2252,
+      "pinball_base": 2.0058,
+      "improvement": -0.1094,
       "dm": {
-        "n": 138,
-        "mean": 0.225972,
-        "se": 0.08934,
-        "p": 0.0114
+        "n": 139,
+        "mean": 0.21938,
+        "se": 0.088784,
+        "p": 0.0135
       }
     },
     "gpr": {
       "available": true,
-      "n": 138,
-      "pinball_model": 2.2331,
-      "pinball_base": 1.9777,
-      "improvement": -0.1291,
+      "n": 139,
+      "pinball_model": 2.2252,
+      "pinball_base": 1.9926,
+      "improvement": -0.1168,
       "dm": {
-        "n": 138,
-        "mean": 0.25541,
-        "se": 0.116047,
-        "p": 0.0277
+        "n": 139,
+        "mean": 0.232669,
+        "se": 0.111251,
+        "p": 0.0365
       }
     },
     "real_rate": {

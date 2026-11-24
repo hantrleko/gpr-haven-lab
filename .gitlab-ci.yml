@@ -1,8 +1,16 @@
-# GitLab Pages. The site is already built into docs/; this job only publishes it.
+# GitLab Pages. The site is already built into docs/.
+# If this checkout does not contain docs, publish the public GitHub copy.
 pages:
   stage: deploy
   image: alpine:3.21
   script:
+    - apk add --no-cache git
+    - |
+      if [ ! -f docs/index.html ]; then
+        git clone --depth 1 https://github.com/hantrleko/gpr-haven-lab.git /tmp/lab
+        mkdir -p docs
+        cp -a /tmp/lab/docs/. docs/
+      fi
     - mkdir -p public
     - cp -a docs/. public/
   artifacts:

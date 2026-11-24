@@ -1,0 +1,12 @@
+# GitLab Pages. The site is already built into docs/; this job only publishes it.
+pages:
+  stage: deploy
+  image: alpine:3.21
+  script:
+    - mkdir -p public
+    - cp -a docs/. public/
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

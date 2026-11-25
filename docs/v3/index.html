@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EF Lab 地缘风险简报</title>
+<meta name="description" content="当地缘风险上升时，哪些避险资产撑住了？基于规则的历史对照报告。">
+<link rel="stylesheet" href="styles.css">
+<link rel="preload" href="fonts/public-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <p class="site-name" id="site-name">EF Lab 地缘风险简报</p>
+    <div class="controls" role="group" aria-label="report controls">
+      <label class="ctl">
+        <span class="ctl-label" id="lbl-date">选一个日期</span>
+        <input type="date" id="date-input">
+      </label>
+      <label class="ctl">
+        <span class="ctl-label" id="lbl-event">事件</span>
+        <select id="event-select"></select>
+      </label>
+      <label class="ctl">
+        <span class="ctl-label" id="lbl-bench">基准</span>
+        <select id="bench-select"></select>
+      </label>
+      <div class="ctl lang-ctl" role="group" aria-label="language">
+        <button type="button" data-lang="zh" aria-pressed="true">中</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
+  </div>
+  <p class="date-msg" id="date-msg" role="alert"></p>
+</header>
+
+<div class="fatal" id="fatal" role="alert"></div>
+
+<main class="layout">
+  <section class="hero" id="hero" aria-live="polite"></section>
+  <div class="stripes-wrap" id="stripes"></div>
+
+  <div class="column">
+    <section class="block" id="sec-pressure"></section>
+    <section class="block" id="sec-havens"></section>
+    <section class="block" id="sec-history"></section>
+    <section class="block" id="sec-evidence"></section>
+    <section class="block" id="sec-caveats"></section>
+  </div>
+  <aside class="rail" id="rail" aria-label="notes"></aside>
+</main>
+
+<footer class="wrap" id="site-footer"></footer>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>

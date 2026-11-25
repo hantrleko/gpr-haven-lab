@@ -6,10 +6,10 @@
     "2007-08",
     "2026-10"
   ],
-  "built": "2026-11-24",
-  "payload_hash": "298467171cb074b6",
+  "built": "2026-11-25",
+  "payload_hash": "893be0b454c4edec",
   "endpoints": {
-    "monthly": "lab_data_monthly.298467171cb074b6.json",
+    "monthly": "lab_data_monthly.893be0b454c4edec.json",
     "monthly_alias": "lab_data_monthly.json",
     "daily": "lab_data_daily.json",
     "full": "lab_data.json",

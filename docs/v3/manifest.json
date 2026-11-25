@@ -1,16 +1,16 @@
 {
   "schema": "3.0.0-p1",
-  "built": "2026-11-24",
+  "built": "2026-11-25",
   "files": {
     "series": {
       "path": "series.json",
-      "sha256": "cf938695b32b534d8378545f1b2f0b101b2720f19b761a964af2dcb9dfe28761",
-      "bytes": 921193
+      "sha256": "4eeb17535e3a3ce14c9c9b0a7d2497dcbce2e8a7b4ecf91d6945744be1676d73",
+      "bytes": 921301
     },
     "reports": {
       "path": "reports.json",
-      "sha256": "815f232dcfa59938498342e3f49e485ea847fc63bc8f9e1c3d00963bade1c079",
-      "bytes": 353282
+      "sha256": "61aae3fd52962d012a779daf93755db82bc4cba4dd4252774cdfb967484fddf7",
+      "bytes": 355344
     },
     "rules": {
       "path": "rules.json",

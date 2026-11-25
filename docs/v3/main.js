@@ -270,7 +270,7 @@ function onPresetClick(ev) {
 async function init() {
   state.lang = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "zh";
   try {
-    state.data = await new V3Data("").loadCore();
+    state.data = await new V3Data(document.documentElement.dataset.base || "").loadCore();
   } catch (err) {
     const file = String(err && err.message ? err.message : "").split("/").pop() || "reports.json";
     els.fatal.textContent = t("zh", "err_fetch", { file });

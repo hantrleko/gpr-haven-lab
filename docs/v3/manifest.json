@@ -4,13 +4,13 @@
   "files": {
     "series": {
       "path": "series.json",
-      "sha256": "4eeb17535e3a3ce14c9c9b0a7d2497dcbce2e8a7b4ecf91d6945744be1676d73",
-      "bytes": 921301
+      "sha256": "1ad14f7ea94442967173124fa9bca10257cf937907b2c4409a07f4b9f50f9268",
+      "bytes": 921306
     },
     "reports": {
       "path": "reports.json",
-      "sha256": "61aae3fd52962d012a779daf93755db82bc4cba4dd4252774cdfb967484fddf7",
-      "bytes": 355344
+      "sha256": "91b567bc41dc6cc477e4f365aa759b044a737b8fe0b5291acc1844bf89a939fe",
+      "bytes": 355357
     },
     "rules": {
       "path": "rules.json",

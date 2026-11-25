@@ -335,10 +335,11 @@ export function renderFooter(ctx) {
   const srcLabel = { yahoo: "Yahoo Finance", sina: "Sina", "spot file": "LBMA spot file" };
   const parts = [...srcMap.entries()].map(([src, syms]) => `${srcLabel[src] || src}: ${syms.join(", ")}`);
   parts.push(t(lang, "footer_gpr"));
+  const classicHref = location.pathname.includes("/v3/") ? "../classic/" : "classic/";
   el.innerHTML = `
     <p class="footer-links">
       <a href="https://github.com/hantrleko/gpr-haven-lab/blob/main/docs/methods/v3.md" rel="noopener">${esc(t(lang, "footer_methods"))}</a>
-      <a href="../index.html">${esc(t(lang, "footer_classic"))}</a>
+      <a href="${classicHref}">${esc(t(lang, "footer_classic"))}</a>
     </p>
     <p class="muted footer-src">${esc(t(lang, "footer_sources"))}${esc(parts.join("；"))}</p>
     <p class="muted">${esc(t(lang, "footer_built", { built }))} · ${esc(t(lang, "not_advice"))}</p>`;

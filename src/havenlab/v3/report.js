@@ -585,7 +585,13 @@ export function buildAllReports(payload, rules, events) {
   const decoded = decodeSeries(payload);
   const ctx = makeCtx(decoded, rules);
   const benches = rules.benchmarks.filter((b) => decoded.series[b] && decoded.series[b].days.length);
-  const out = { rules_version: rules.version, built: payload.meta.built, latest: {}, events: {} };
+  const out = {
+    rules_version: rules.version,
+    built: payload.meta.built,
+    latest: {},
+    events: {},
+    event_list: events.map((e) => ({ id: e.id, date: e.date, name: e.name ?? null, name_en: e.name_en ?? null })),
+  };
   for (const bench of benches) {
     out.latest[bench] = report(ctx, events, null, bench, "latest", null);
   }

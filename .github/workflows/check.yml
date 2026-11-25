@@ -24,6 +24,12 @@ jobs:
           node --check src/havenlab/ui/phase_b.js
           node --check src/havenlab/ui/phase_c.js
           node --check src/havenlab/v3/report.js
+          node --check src/havenlab/v3/main.js
+          node --check src/havenlab/v3/i18n.js
+          node --check src/havenlab/v3/data.js
+          node --check src/havenlab/v3/stripes.js
+          node --check src/havenlab/v3/charts.js
+          node --check src/havenlab/v3/render.js
           node tests/test_claim_rule.js
           node tests/test_verdict_rule.js
           node tests/test_haven_se.js
@@ -66,7 +72,7 @@ jobs:
           ]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("lab_data_monthly.*.json")]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("slices.json")]
-          paths += [str(path).replace("\\", "/") for path in Path("docs/v3").glob("*.json")]
+          paths += [str(path).replace("\\", "/") for path in Path("docs/v3").rglob("*") if path.is_file()]
           paths += ["docs/sitemap.xml", "docs/robots.txt", "docs/api/v2/manifest.json"]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("e/*/index.html")]
           paths += [str(path).replace("\\", "/") for path in Path("docs").glob("en/e/*/index.html")]

@@ -191,6 +191,16 @@ def _apply_sample_pin(asof: str) -> tuple[Path, dict]:
     return pin_path, pin
 
 
+def publish_v3_ui(root: Path) -> None:
+    """Copy the v3 static UI (html/css/js/fonts) into docs/v3 byte-for-byte."""
+    root = Path(root)
+    src = root / "src" / "havenlab" / "v3"
+    dst = root / "docs" / "v3"
+    if not src.is_dir() or not (dst / "series.json").exists():
+        return
+    shutil.copytree(src, dst, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Rebuild the GPR haven lab.")
     parser.add_argument(
@@ -282,6 +292,7 @@ def main() -> None:
     print(f"Page {docs / 'index.html'}")
     build_general(ROOT, from_derived=args.from_derived)
     publish_reports(ROOT)
+    publish_v3_ui(ROOT)
 
 
 if __name__ == "__main__":

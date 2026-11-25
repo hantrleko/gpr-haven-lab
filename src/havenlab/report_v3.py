@@ -691,6 +691,10 @@ def build_all_reports(payload: dict, rules: dict, events: list) -> dict:
         "built": payload["meta"]["built"],
         "latest": {},
         "events": {},
+        "event_list": [
+            {"id": e["id"], "date": e["date"], "name": e.get("name"), "name_en": e.get("name_en")}
+            for e in events
+        ],
     }
     for bench in benches:
         out["latest"][bench] = _report(ctx, events, None, bench, "latest", None)

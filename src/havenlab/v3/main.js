@@ -1,268 +1,136 @@
-// EF Lab v3 report page — state, URL routing and render orchestration.
-// All report text comes from report_v3 outputs; this file only wires UI.
+// EF Lab narrative-test page — orchestration: load core data, render the
+// scoreboard-first product, wire the custom tool's shareable URL state and
+// the condensed briefing's controls. All judgment text comes from
+// narratives.json / the engine; this file only wires UI.
 
 import { V3Data } from "./data.js";
 import { t } from "./i18n.js";
 import { monthlyGpr } from "./stripes.js";
-import { buildReport } from "./report.js";
-import { renderAll, esc } from "./render.js";
-
-const MIN_DATE = "2008-01-01";
+import { renderHero, renderMethods } from "./scoreboard.js";
+import { renderDetails } from "./details.js";
+import { createTool } from "./tool.js";
+import { renderBriefing } from "./briefing.js";
+import { esc } from "./util.js";
 
 const els = {
+  mastBuilt: document.getElementById("mast-built"),
+  brandName: document.getElementById("brand-name"),
   hero: document.getElementById("hero"),
-  stripes: document.getElementById("stripes"),
-  pressure: document.getElementById("sec-pressure"),
-  havens: document.getElementById("sec-havens"),
-  history: document.getElementById("sec-history"),
-  evidence: document.getElementById("sec-evidence"),
-  caveats: document.getElementById("sec-caveats"),
+  methods: document.getElementById("methods-strip"),
+  details: document.getElementById("details"),
+  tool: document.getElementById("tool"),
+  briefing: document.getElementById("briefing"),
   footer: document.getElementById("site-footer"),
-  rail: document.getElementById("rail"),
-  dateInput: document.getElementById("date-input"),
-  eventSelect: document.getElementById("event-select"),
-  benchSelect: document.getElementById("bench-select"),
-  langBtns: [...document.querySelectorAll("[data-lang]")],
-  dateMsg: document.getElementById("date-msg"),
   fatal: document.getElementById("fatal"),
+  langBtns: [...document.querySelectorAll("[data-lang]")],
 };
 
 const state = {
   lang: "zh",
-  mode: "latest", // latest | preset | custom
-  eventId: null,
-  date: null,
-  bench: "spx",
   data: null,
-  report: null,
   months: null,
-  dateError: null,
   seriesFailed: false,
+  brf: { mode: "latest", eventId: null, bench: "spx" },
+  toolParamsAtLoad: false,
 };
 
-const view = {
-  data: null,
-  state,
-  els,
-  get report() { return state.report; },
-  get rep() { return state.report; },
-  get months() { return state.months; },
-  get lang() { return state.lang; },
-  get bench() { return state.bench; },
-  get seriesFailed() { return state.seriesFailed; },
-  get rules() { return state.data ? state.data.rules : null; },
-};
+let tool = null;
 
-// ------------------------------------------------------------ url <-> state
+// ------------------------------------------------------------------ footer
 
-function presetForDate(dateStr) {
-  if (!state.data) return null;
-  return state.data.eventList.find((e) => e.date === dateStr) || null;
+function renderFooter() {
+  const { data, lang } = state;
+  const el = els.footer;
+  const built = data.reports && data.reports.built ? data.reports.built : "";
+  const srcMap = new Map();
+  for (const a of Object.values(data.assets)) {
+    const src = a.source || "";
+    if (!srcMap.has(src)) srcMap.set(src, []);
+    if (a.symbol) srcMap.get(src).push(a.symbol);
+  }
+  const srcLabel = { yahoo: "Yahoo Finance", sina: "Sina", "spot file": "LBMA spot file" };
+  const parts = [...srcMap.entries()].map(([src, syms]) => `${srcLabel[src] || src}: ${syms.join(", ")}`);
+  parts.push(t(lang, "footer_gpr"));
+  const classicHref = location.pathname.includes("/v3/") ? "../classic/" : "classic/";
+  el.innerHTML = `
+    <p class="footer-links">
+      <a href="https://github.com/hantrleko/gpr-haven-lab/blob/main/docs/methods/v3.md" rel="noopener">${esc(t(lang, "footer_methods"))}</a>
+      <a href="${classicHref}">${esc(t(lang, "footer_classic"))}</a>
+    </p>
+    <p class="muted footer-src">${esc(t(lang, "footer_sources"))}${esc(parts.join("；"))}</p>
+    <p class="muted">${esc(t(lang, "footer_built", { built }))} · ${esc(t(lang, "not_advice"))}</p>`;
 }
 
-function resolveFromUrl() {
-  const params = new URLSearchParams(location.search);
-  state.lang = params.get("lang") === "en" ? "en" : "zh";
-  const b = params.get("b");
-  if (state.data && state.data.benches.includes(b)) state.bench = b;
-  const d = params.get("d");
-  if (!d) {
-    state.mode = "latest";
-    state.eventId = null;
-    state.date = null;
-    state.dateError = null;
-    return;
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
-    state.mode = "latest";
-    state.eventId = null;
-    state.date = null;
-    state.dateError = t(state.lang, "err_invalid");
-    return;
-  }
-  const preset = presetForDate(d);
-  if (preset) {
-    state.mode = "preset";
-    state.eventId = preset.id;
-    state.date = d;
-    state.dateError = null;
-    return;
-  }
-  state.mode = "custom";
-  state.eventId = null;
-  state.date = d;
-  state.dateError = null;
-}
+// ------------------------------------------------------------------ chrome
 
-function syncUrl(replace = false) {
-  const params = new URLSearchParams();
-  if (state.mode !== "latest") params.set("d", state.date);
-  if (state.bench !== "spx") params.set("b", state.bench);
-  if (state.lang !== "zh") params.set("lang", state.lang);
-  const qs = params.toString();
-  const url = location.pathname + (qs ? "?" + qs : "");
-  if (replace) history.replaceState(null, "", url);
-  else history.pushState(null, "", url);
-}
-
-// --------------------------------------------------------------- reporting
-
-function currentReport() {
-  const data = state.data;
-  if (!data || !data.reports) return null;
-  if (state.mode === "latest") return data.reports.latest[state.bench] || null;
-  if (state.mode === "preset") {
-    const perBench = data.reports.events[state.eventId];
-    return perBench ? perBench[state.bench] || null : null;
-  }
-  if (!data.decoded) return null; // series still loading
-  return buildReport(data.decoded, data.rules, data.eventList, {
-    date: state.date,
-    benchmark: state.bench,
-    kind: "custom",
-  });
-}
-
-function validateDate(dateStr) {
-  const max = state.data && state.data.benchLast(state.bench) ? state.data.benchLast(state.bench) : null;
-  if (dateStr < MIN_DATE || (max && dateStr > max)) {
-    return t(state.lang, "err_range", { min: MIN_DATE, max: max || "…" });
-  }
-  return null;
-}
-
-function setModeFromControls() {
-  const d = els.dateInput.value;
-  if (!d) {
-    state.mode = "latest";
-    state.eventId = null;
-    state.date = null;
-    state.dateError = null;
-    syncUrl();
-    refresh();
-    return;
-  }
-  const preset = presetForDate(d);
-  state.date = d;
-  if (preset) {
-    state.mode = "preset";
-    state.eventId = preset.id;
-  } else {
-    state.mode = "custom";
-    state.eventId = null;
-  }
-  state.dateError = validateDate(d);
-  if (state.dateError) {
-    // keep the report at latest so the page still answers something
-    state.mode = "latest";
-    state.eventId = null;
-    state.date = null;
-  }
-  syncUrl();
-  refresh();
-}
-
-function refresh() {
-  state.report = currentReport();
-  view.data = state.data;
-  syncControls();
-  renderAll(view);
-}
-
-// --------------------------------------------------------------- controls
-
-function fillSelects() {
-  const data = state.data;
-  // benchmark options — only benches present in the data
-  els.benchSelect.innerHTML = data.benches
-    .map((b) => `<option value="${esc(b)}">${esc(data.assets[b] ? data.assets[b]["name_" + state.lang] : b)}</option>`)
-    .join("");
-  els.benchSelect.value = state.bench;
-  // event options: latest + presets (chronological) + custom slot
-  const events = [...data.eventList].sort((a, b) => (a.date < b.date ? -1 : 1));
-  const opts = [`<option value="__latest">${esc(t(state.lang, "latest"))}</option>`];
-  for (const ev of events) {
-    const name = (state.lang === "zh" ? ev.name : ev.name_en) || ev.name || ev.name_en || ev.id;
-    opts.push(`<option value="${esc(ev.id)}">${esc(name)} (${esc(ev.date)})</option>`);
-  }
-  opts.push(`<option value="__custom" ${state.mode === "custom" ? "selected" : ""}>${esc(t(state.lang, "custom_date"))}</option>`);
-  els.eventSelect.innerHTML = opts.join("");
-  if (state.mode === "latest") els.eventSelect.value = "__latest";
-  else if (state.mode === "preset") els.eventSelect.value = state.eventId;
-  else els.eventSelect.value = "__custom";
-  els.dateInput.min = MIN_DATE;
-  const last = data.benchLast(state.bench);
-  if (last) els.dateInput.max = last;
-  els.dateInput.value = state.mode === "latest" ? "" : state.date || "";
+function syncChrome() {
+  const { lang, data } = state;
+  document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+  document.title = t(lang, "doc_title");
+  els.brandName.textContent = t(lang, "brand_name");
+  const built = data.reports && data.reports.built ? data.reports.built : "";
+  els.mastBuilt.textContent = built ? t(lang, "footer_built", { built }) : "";
   for (const btn of els.langBtns) {
-    btn.setAttribute("aria-pressed", btn.dataset.lang === state.lang ? "true" : "false");
+    btn.setAttribute("aria-pressed", btn.dataset.lang === lang ? "true" : "false");
   }
-  document.documentElement.lang = state.lang === "zh" ? "zh-CN" : "en";
-  document.title = t(state.lang, "site_name");
 }
 
-function syncControls() {
-  document.getElementById("site-name").textContent = t(state.lang, "site_name");
-  document.getElementById("lbl-date").textContent = t(state.lang, "pick_date");
-  document.getElementById("lbl-event").textContent = t(state.lang, "event");
-  document.getElementById("lbl-bench").textContent = t(state.lang, "benchmark");
-  fillSelects();
-  els.dateMsg.textContent = state.dateError || "";
-  els.dateMsg.classList.toggle("show", Boolean(state.dateError));
+// ----------------------------------------------------------------- renders
+
+function renderStatic() {
+  const { data, lang } = state;
+  syncChrome();
+  renderHero(els.hero, data, lang);
+  renderMethods(els.methods, data, lang);
+  renderDetails(els.details, data, lang);
+  tool.render(data, lang);
+  renderBriefing(els.briefing, data, lang, state.brf, state.months);
+  renderFooter();
+  wireBriefingControls();
 }
 
-function onEventSelect() {
-  const v = els.eventSelect.value;
-  if (v === "__latest") {
-    state.mode = "latest";
-    state.eventId = null;
-    state.date = null;
-    state.dateError = null;
-    els.dateInput.value = "";
-  } else if (v === "__custom") {
-    els.dateInput.focus();
-    return;
-  } else {
-    const ev = state.data.eventList.find((e) => e.id === v);
-    if (!ev) return;
-    state.mode = "preset";
-    state.eventId = ev.id;
-    state.date = ev.date;
-    state.dateError = validateDate(ev.date);
-    els.dateInput.value = ev.date;
-  }
-  syncUrl();
-  refresh();
+function renderBriefingOnly() {
+  renderBriefing(els.briefing, state.data, state.lang, state.brf, state.months);
+  wireBriefingControls();
 }
 
-function onBenchSelect() {
-  state.bench = els.benchSelect.value;
-  if (state.mode !== "latest" && state.date) {
-    state.dateError = validateDate(state.date);
+function wireBriefingControls() {
+  const period = document.getElementById("brf-period");
+  const bench = document.getElementById("brf-bench");
+  if (period) {
+    period.addEventListener("change", () => {
+      if (period.value === "__latest") {
+        state.brf.mode = "latest";
+        state.brf.eventId = null;
+      } else {
+        state.brf.mode = "preset";
+        state.brf.eventId = period.value;
+      }
+      renderBriefingOnly();
+    });
   }
-  syncUrl();
-  refresh();
+  if (bench) {
+    bench.addEventListener("change", () => {
+      state.brf.bench = bench.value;
+      renderBriefingOnly();
+    });
+  }
+}
+
+// ------------------------------------------------------------------- url --
+
+function syncLangUrl() {
+  const params = new URLSearchParams(location.search);
+  if (state.lang === "zh") params.delete("lang");
+  else params.set("lang", state.lang);
+  const qs = params.toString();
+  history.replaceState(null, "", location.pathname + (qs ? "?" + qs : ""));
 }
 
 function onLang(btn) {
   state.lang = btn.dataset.lang;
-  syncUrl(true);
-  refresh();
-}
-
-function onPresetClick(ev) {
-  const id = ev.target.closest("[data-event]");
-  if (!id) return;
-  const eventId = id.dataset.event;
-  const preset = state.data.eventList.find((e) => e.id === eventId);
-  if (!preset) return;
-  state.mode = "preset";
-  state.eventId = eventId;
-  state.date = preset.date;
-  state.dateError = null;
-  syncUrl();
-  refresh();
-  window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  syncLangUrl();
+  renderStatic();
 }
 
 // -------------------------------------------------------------------- init
@@ -275,32 +143,38 @@ async function init() {
     const file = String(err && err.message ? err.message : "").split("/").pop() || "reports.json";
     els.fatal.textContent = t("zh", "err_fetch", { file });
     els.fatal.classList.add("show");
-    els.hero.innerHTML = `<h1 class="hero-title">${esc(t("zh", "site_name"))}</h1>`;
     return;
   }
-  view.data = state.data;
-  resolveFromUrl();
-  // default benchmark if URL asked for one not in data
-  if (!state.data.benches.includes(state.bench)) state.bench = state.data.benches[0] || "spx";
 
-  els.dateInput.addEventListener("change", setModeFromControls);
-  els.eventSelect.addEventListener("change", onEventSelect);
-  els.benchSelect.addEventListener("change", onBenchSelect);
+  if (!state.data.benches.includes(state.brf.bench)) state.brf.bench = state.data.benches[0] || "spx";
+
+  tool = createTool(els.tool);
+  state.toolParamsAtLoad = tool.readUrl(state.data);
+
   for (const btn of els.langBtns) btn.addEventListener("click", () => onLang(btn));
-  els.history.addEventListener("click", onPresetClick);
   window.addEventListener("popstate", () => {
-    resolveFromUrl();
-    refresh();
+    state.lang = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "zh";
+    const hasParams = tool.readUrl(state.data);
+    renderStatic();
+    if (hasParams && state.data.decoded) tool.run(state.data, state.lang, { push: false, scroll: false });
   });
 
-  refresh();
+  // re-render the small multiples when the layout width changes
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      if (state.data) renderDetails(els.details, state.data, state.lang);
+    }, 220);
+  });
 
-  // series.json: stripes, GPR chart, custom-date reports
+  renderStatic();
+
+  // series.json: stripes, GPR chart, asset display names, the custom tool
   try {
     await state.data.loadSeries();
     const gpr = state.data.gprSeries();
     state.months = gpr ? monthlyGpr(gpr) : null;
-    if (state.date) state.dateError = validateDate(state.date);
   } catch (err) {
     state.months = null;
     state.seriesFailed = true;
@@ -308,7 +182,15 @@ async function init() {
     els.fatal.textContent = t(state.lang, "err_fetch", { file });
     els.fatal.classList.add("show");
   }
-  refresh();
+  renderStatic();
+
+  // shareable auto-run: ?d=…&assets=… present at load → run and scroll
+  if (state.toolParamsAtLoad && state.data.decoded) {
+    const ok = tool.run(state.data, state.lang, { push: false, scroll: false });
+    if (ok) {
+      els.tool.scrollIntoView({ behavior: "auto", block: "start" });
+    }
+  }
 }
 
 init();

@@ -14,8 +14,18 @@
     },
     "rules": {
       "path": "rules.json",
-      "sha256": "7af73510b8204060f85dbb4e9a4ce3c0dd27843f998e2321f79a252e4e1e3872",
-      "bytes": 9054
+      "sha256": "d409bb4a0b7f46a8b548ecfcfb8a1ed2693c6e5a59115428a041b17de4802acd",
+      "bytes": 9360
+    },
+    "narratives": {
+      "path": "narratives.json",
+      "sha256": "2972e586966a4b505d695239f32624d70321ca35fe571994d931159321aa1f8b",
+      "bytes": 18452
+    },
+    "narrative_rules": {
+      "path": "narrative_rules.json",
+      "sha256": "a829abf4081c5ccf29b99aebbd162a53235d01ba7fe3565f122284254a44e38b",
+      "bytes": 2189
     }
   }
 }

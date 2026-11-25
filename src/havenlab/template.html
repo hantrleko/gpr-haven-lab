@@ -6,7 +6,7 @@
 <title>EF Lab | 地缘政治风险 × 避险资产</title>
 <meta name="description" content="EF Lab 的地缘政治风险与避险资产实验室。比较 GPR 冲击前后黄金、布伦特、美元、沪深300和恒生的路径、相关和避险强度。仅供学习与研究，不构成投资建议。" />
 <link rel="canonical" href="https://hantrleko.github.io/gpr-haven-lab/" />
-<link rel="icon" href="favicon.png" type="image/png" />
+<link rel="icon" href="../favicon.png" type="image/png" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="EF Lab · 地缘政治风险 × 避险资产实验室" />
 <meta property="og:description" content="事件窗口里的黄金、油价和股指路径，以及一个自定的避险强度。仅供学习与研究，不构成投资建议。" />
@@ -178,11 +178,12 @@
 <body>
 <main>
   <header class="brand">
-    <img src="logo.webp" alt="Eugene Finance" width="88" height="88" />
+    <img src="../logo.webp" alt="Eugene Finance" width="88" height="88" />
     <div>
       <p class="kicker">EF LAB</p>
       <h1 id="brand-title">EF Lab · 地缘政治风险 × 避险资产实验室</h1>
       <p class="subtitle" id="brand-sub">Interactive Geopolitical Risk and Safe-Haven Lab · 仅供学习与研究，不构成投资建议</p>
+      <p class="note"><a href="../">地缘风险简报 · Geopolitical Risk Briefing</a></p>
       <button type="button" class="ghost" id="lang">EN</button>
     </div>
   </header>
@@ -289,7 +290,7 @@
         <button class="ghost" type="button" id="base-event" data-en="Event day = 100">事件日=100</button>
         <button class="ghost" type="button" id="base-pre" data-en="Pre-event = 100">事件前=100</button>
         <button class="ghost" type="button" id="dl-caption" data-en="Copy caption">复制图注</button>
-        <a class="ghost" id="card-link" href="cards/hormuz_2026.jpg">竖版卡片</a>
+        <a class="ghost" id="card-link" href="../cards/hormuz_2026.jpg">竖版卡片</a>
       </span>
     </div>
     <div id="path" class="chart-host" data-chart aria-busy="true"></div>
@@ -1426,8 +1427,8 @@ function applyI18n() {
   document.title = en ? "EF Lab | Geopolitical risk and safe havens" : "EF Lab | 地缘政治风险 × 避险资产";
   const foot = document.getElementById("site-foot");
   if (foot) foot.innerHTML = en
-    ? 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · For study only. Not investment advice. Past prices are not a forecast. Data are not updated automatically; the published sample ends in 2026-09. Reproduce with <code>fetch_data.py</code> and <code>build.py</code>. <a href="paper.html">Paper notes</a> · <a href="feed.xml">RSS</a>.'
-    : 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a>。';
+    ? 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · For study only. Not investment advice. Past prices are not a forecast. Data are not updated automatically; the published sample ends in 2026-09. Reproduce with <code>fetch_data.py</code> and <code>build.py</code>. <a href="../paper.html">Paper notes</a> · <a href="../feed.xml">RSS</a>.'
+    : 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="../paper.html">论文配套</a> · <a href="../feed.xml">RSS</a>。';
   if (LAB) {
     document.getElementById("lede").textContent = en
       ? "Monthly sample " + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ", " + LAB.meta.n_months + " months. Pick an event, then read the price path, the correlation change, and the site-defined haven score. Data change only when someone reruns build.py."
@@ -1663,7 +1664,7 @@ function render() {
   if (card) {
     const builtIn = LAB.events.some(item => item.id === event.id);
     card.hidden = !builtIn;
-    if (builtIn) card.href = "cards/" + event.id + ".jpg";
+    if (builtIn) card.href = "../cards/" + event.id + ".jpg";
     card.textContent = state.lang === "en" ? "Vertical card" : "竖版卡片";
   }
   writeUrl();
@@ -2665,23 +2666,24 @@ async function start() {
   const busy = document.getElementById("busy");
   busy.hidden = false;
   busy.textContent = "正在载入数据…";
-  let monthlyName = "lab_data_monthly.json";
+  const DATA = "../";
+  let monthlyName = DATA + "lab_data_monthly.json";
   let slicesName = "";
   try {
-    const man = await fetch("api/v1/manifest.json", {cache: "no-store"});
+    const man = await fetch(DATA + "api/v1/manifest.json", {cache: "no-store"});
     if (man.ok) {
       const manifest = await man.json();
-      if (manifest.endpoints && manifest.endpoints.monthly) monthlyName = manifest.endpoints.monthly;
-      if (manifest.endpoints && manifest.endpoints.slices) slicesName = manifest.endpoints.slices;
+      if (manifest.endpoints && manifest.endpoints.monthly) monthlyName = DATA + manifest.endpoints.monthly;
+      if (manifest.endpoints && manifest.endpoints.slices) slicesName = DATA + manifest.endpoints.slices;
     }
   } catch (err) {}
   try {
     const monthlyP = fetch(monthlyName, {cache: "no-store"});
     const slicesP = slicesName ? fetch(slicesName, {cache: "no-store"}) : null;
     let monthlyResp = await monthlyP;
-    if (!monthlyResp.ok && monthlyName !== "lab_data_monthly.json") monthlyResp = await fetch("lab_data_monthly.json", {cache: "no-store"});
+    if (!monthlyResp.ok && monthlyName !== DATA + "lab_data_monthly.json") monthlyResp = await fetch(DATA + "lab_data_monthly.json", {cache: "no-store"});
     if (monthlyResp.ok) LAB = await monthlyResp.json();
-    else LAB = await (await fetch("lab_data.json")).json();
+    else LAB = await (await fetch(DATA + "lab_data.json")).json();
     if (!LAB.slices && slicesP) {
       const extra = await slicesP;
       if (extra.ok) LAB.slices = await extra.json();
@@ -2693,7 +2695,7 @@ async function start() {
   }
   boot();
   if (!LAB.daily) {
-    fetch("lab_data_daily.json").then(resp => resp.ok ? resp.json() : null).then(extra => {
+    fetch(DATA + "lab_data_daily.json").then(resp => resp.ok ? resp.json() : null).then(extra => {
       if (!extra || !extra.daily) return;
       LAB.daily = extra.daily;
       if (state.spec) state.spec.events = state.spec.events.filter(event => monthHasAfter(event.month) && sessionAfter(event.date));

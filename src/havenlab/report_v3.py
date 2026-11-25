@@ -152,7 +152,7 @@ def decode_series(payload: dict) -> dict:
 
 
 class _Ctx:
-    __slots__ = ("assets", "series", "rules", "hist", "gpr_pref", "rates")
+    __slots__ = ("assets", "series", "rules", "hist", "gpr_pref", "rates", "narrative_rules")
 
     def __init__(self, decoded: dict, rules: dict):
         self.assets = decoded["assets"]
@@ -161,6 +161,7 @@ class _Ctx:
         self.hist: dict = {}
         self.gpr_pref = None
         self.rates: dict = {}
+        self.narrative_rules = None
 
 
 def _name(ctx: _Ctx, asset_id: str, lang: str) -> str:
@@ -612,6 +613,242 @@ def _history_rows(ctx: _Ctx, events: list, exclude_event_id: str | None) -> list
 
 
 # ---------------------------------------------------------------------------
+# narrative verdict layer (rules/narratives_v3.json, docs/methods/v3.md)
+#
+# Pre-registered-style mechanical aggregation over event dates, fixed on
+# 2026-11-25 before outputs were examined. Mirrored in v3/report.js.
+# ---------------------------------------------------------------------------
+
+# Secondary horizons for the n_pos7 / n_pos91 counts. Validity is always
+# decided at the primary horizon; a valid row whose 7/91-day window is not
+# complete counts as non-positive at that horizon.
+_NARR_H7 = 7
+_NARR_H91 = 91
+
+
+def _narrative_entries(events_or_dates: list) -> list:
+    """Normalize event dicts or bare date strings to {event, date, day}."""
+    out = []
+    for item in events_or_dates:
+        if isinstance(item, str):
+            out.append({"event": None, "date": item, "day": _parse_day(item)})
+        else:
+            out.append({"event": item["id"], "date": item["date"], "day": _parse_day(item["date"])})
+    return out
+
+
+def _complete(cell: dict) -> bool:
+    """A window return is computable iff the window closed (missing/incomplete exclude)."""
+    return cell["complete"] is True
+
+
+def _narrative_row(ctx: _Ctx, asset_id: str, bench_id: str, kind: str, h: int, entry: dict) -> dict:
+    day = entry["day"]
+    row = {"event": entry["event"], "date": entry["date"], "status": None, "ret": None, "bench_ret": None, "pos7": False, "pos91": False}
+    bench = _window(ctx, bench_id, h, day)
+    if not _complete(bench):
+        row["status"] = "incomplete"
+        return row
+    row["bench_ret"] = bench["ret"]
+    if kind == "haven" and bench["ret"] >= 0.0:
+        row["status"] = "not_a_test"
+        return row
+    cell = _window(ctx, asset_id, h, day)
+    if not _complete(cell):
+        row["status"] = "missing"
+        return row
+    row["status"] = "valid"
+    row["ret"] = cell["ret"]
+    cell7 = _window(ctx, asset_id, _NARR_H7, day)
+    row["pos7"] = _complete(cell7) and cell7["ret"] > 0.0
+    cell91 = _window(ctx, asset_id, _NARR_H91, day)
+    row["pos91"] = _complete(cell91) and cell91["ret"] > 0.0
+    return row
+
+
+def _aggregate_narrative(ctx: _Ctx, events_or_dates: list, asset_id: str, bench_id: str, kind: str, nrules: dict) -> dict:
+    """Core aggregation: rows plus integer-math verdict for one asset.
+
+    events_or_dates is a list of event dicts ({"id", "date"}) or bare
+    YYYY-MM-DD strings (pseudo-events, used by the custom tool).
+    """
+    h = int(nrules["horizon"])
+    min_tests = int(nrules["min_tests"])
+    rows = [_narrative_row(ctx, asset_id, bench_id, kind, h, entry) for entry in _narrative_entries(events_or_dates)]
+    n_valid = 0
+    n_pos = 0
+    n_not_test = 0
+    n_missing = 0
+    n_pos7 = 0
+    n_pos91 = 0
+    rets = []
+    for row in rows:
+        status = row["status"]
+        if status == "valid":
+            n_valid += 1
+            if row["ret"] > 0.0:
+                n_pos += 1
+            if row["pos7"]:
+                n_pos7 += 1
+            if row["pos91"]:
+                n_pos91 += 1
+            rets.append(row["ret"])
+        elif status == "not_a_test":
+            n_not_test += 1
+        else:  # "missing" and "incomplete" rows combine into n_missing
+            n_missing += 1
+    # Verdict thresholds in integer math exactly (fixed 2026-11-25, no tuning).
+    if n_valid < min_tests:
+        verdict = "untestable"
+    elif n_pos * 3 >= 2 * n_valid:
+        verdict = "mostly_holds"
+    elif n_pos * 3 <= 1 * n_valid:
+        verdict = "mostly_fails"
+    else:
+        verdict = "mixed"
+    median = None
+    if rets:
+        rets.sort()
+        n = len(rets)
+        if n % 2:
+            median = rets[n // 2]
+        else:
+            median = (rets[n // 2 - 1] + rets[n // 2]) / 2.0
+    out_rows = [
+        {"event": row["event"], "date": row["date"], "status": row["status"], "ret": row["ret"], "bench_ret": row["bench_ret"]}
+        for row in rows
+    ]
+    return {
+        "asset": asset_id,
+        "kind": kind,
+        "verdict": verdict,
+        "n_valid": n_valid,
+        "n_pos": n_pos,
+        "n_not_test": n_not_test,
+        "n_missing": n_missing,
+        "n_pos7": n_pos7,
+        "n_pos91": n_pos91,
+        "median": median,
+        "rows": out_rows,
+    }
+
+
+def _narrative_summaries(ctx: _Ctx, agg: dict, nrules: dict, asset_zh: str, asset_en: str) -> tuple:
+    median = agg["median"]
+    median_text = _fmt_signed(median, 1) if median is not None else "—"
+    templates = nrules["summary_templates"]
+    summary_zh = _fill(
+        templates["zh"],
+        {
+            "n_valid": agg["n_valid"],
+            "n_pos": agg["n_pos"],
+            "median": median_text,
+            "n_not_test": agg["n_not_test"],
+            "n_missing": agg["n_missing"],
+            "asset": asset_zh,
+        },
+    )
+    summary_en = _fill(
+        templates["en"],
+        {
+            "n_valid": agg["n_valid"],
+            "n_pos": agg["n_pos"],
+            "median": median_text,
+            "n_not_test": agg["n_not_test"],
+            "n_missing": agg["n_missing"],
+            "asset": asset_en,
+        },
+    )
+    return summary_zh, summary_en
+
+
+def build_preset_narratives(ctx: _Ctx, events: list, nrules: dict) -> list:
+    """The frozen narrative registry evaluated over the 15 built-in events."""
+    bench_id = nrules["benchmark"]
+    out = []
+    for narr in nrules["narratives"]:
+        agg = _aggregate_narrative(ctx, events, narr["asset"], bench_id, narr["kind"], nrules)
+        asset_zh = narr.get("asset_zh") or _name(ctx, narr["asset"], "zh")
+        asset_en = narr.get("asset_en") or _name(ctx, narr["asset"], "en")
+        summary_zh, summary_en = _narrative_summaries(ctx, agg, nrules, asset_zh, asset_en)
+        entry = {
+            "id": narr["id"],
+            "asset": narr["asset"],
+            "kind": narr["kind"],
+            "zh": narr["zh"],
+            "en": narr["en"],
+            "verdict": agg["verdict"],
+            "n_valid": agg["n_valid"],
+            "n_pos": agg["n_pos"],
+            "n_not_test": agg["n_not_test"],
+            "n_missing": agg["n_missing"],
+            "n_pos7": agg["n_pos7"],
+            "n_pos91": agg["n_pos91"],
+            "median": agg["median"],
+            "summary_zh": summary_zh,
+            "summary_en": summary_en,
+            "rows": agg["rows"],
+        }
+        out.append(entry)
+    return out
+
+
+def build_custom_narrative(ctx: _Ctx, dates: list, asset_ids: list, bench_id: str) -> list:
+    """Custom-tool aggregation: bare dates as pseudo-events, haven rules.
+
+    Same output structure as preset narratives. Narrative text fields
+    (id/zh/en) are null — there is no pre-registered statement. Summaries are
+    only written when bench_id is the narrative-layer benchmark, because the
+    fixed template names that benchmark; otherwise they are null.
+    """
+    nrules = ctx.narrative_rules
+    if nrules is None:
+        raise ValueError("ctx.narrative_rules is required for build_custom_narrative")
+    out = []
+    for asset_id in asset_ids:
+        agg = _aggregate_narrative(ctx, dates, asset_id, bench_id, "haven", nrules)
+        if bench_id == nrules["benchmark"]:
+            asset_zh = _name(ctx, asset_id, "zh")
+            asset_en = _name(ctx, asset_id, "en")
+            summary_zh, summary_en = _narrative_summaries(ctx, agg, nrules, asset_zh, asset_en)
+        else:
+            summary_zh, summary_en = None, None
+        entry = {
+            "id": None,
+            "asset": asset_id,
+            "kind": "haven",
+            "zh": None,
+            "en": None,
+            "verdict": agg["verdict"],
+            "n_valid": agg["n_valid"],
+            "n_pos": agg["n_pos"],
+            "n_not_test": agg["n_not_test"],
+            "n_missing": agg["n_missing"],
+            "n_pos7": agg["n_pos7"],
+            "n_pos91": agg["n_pos91"],
+            "median": agg["median"],
+            "summary_zh": summary_zh,
+            "summary_en": summary_en,
+            "rows": agg["rows"],
+        }
+        out.append(entry)
+    return out
+
+
+def build_all_narratives(payload: dict, rules: dict, nrules: dict, events: list) -> dict:
+    decoded = decode_series(payload)
+    ctx = _Ctx(decoded, rules)
+    ctx.narrative_rules = nrules
+    return {
+        "built": payload["meta"]["built"],
+        "rules_version": nrules["version"],
+        "benchmark": nrules["benchmark"],
+        "horizon": nrules["horizon"],
+        "narratives": build_preset_narratives(ctx, events, nrules),
+    }
+
+
+# ---------------------------------------------------------------------------
 # public API
 # ---------------------------------------------------------------------------
 
@@ -739,4 +976,41 @@ def publish_reports(root: Path) -> None:
 
     files["reports"] = entry("reports.json", raw)
     files["rules"] = entry("rules.json", rules_bytes)
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def publish_narratives(root: Path) -> None:
+    """Write docs/v3/narratives.json + narrative_rules.json into the v3 manifest."""
+    root = Path(root)
+    docs_v3 = root / "docs" / "v3"
+    series_path = docs_v3 / "series.json"
+    if not series_path.exists():
+        return
+    payload = json.loads(series_path.read_text(encoding="utf-8"))
+    rules_path = root / "src" / "havenlab" / "rules" / "rules_v3.json"
+    rules = json.loads(rules_path.read_text(encoding="utf-8"))
+    nrules_path = root / "src" / "havenlab" / "rules" / "narratives_v3.json"
+    nrules = json.loads(nrules_path.read_text(encoding="utf-8"))
+    from havenlab.events import EVENTS
+
+    events = [{"id": e["id"], "date": e["date"], "name": e["name"], "name_en": e["name_en"]} for e in EVENTS]
+    narratives = build_all_narratives(payload, rules, nrules, events)
+    blob = json.dumps(narratives, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    raw = blob.encode("utf-8")
+    (docs_v3 / "narratives.json").write_text(blob, encoding="utf-8")
+    nrules_bytes = nrules_path.read_bytes()
+    (docs_v3 / "narrative_rules.json").write_bytes(nrules_bytes)
+    manifest_path = docs_v3 / "manifest.json"
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    else:
+        manifest = {"schema": payload["meta"]["schema"], "built": payload["meta"]["built"], "files": {}}
+    manifest["built"] = payload["meta"]["built"]
+    files = manifest.setdefault("files", {})
+
+    def entry(name: str, data: bytes) -> dict:
+        return {"path": name, "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+
+    files["narratives"] = entry("narratives.json", raw)
+    files["narrative_rules"] = entry("narrative_rules.json", nrules_bytes)
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

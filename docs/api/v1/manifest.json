@@ -1,15 +1,15 @@
 {
   "lab": "gpr-haven-lab",
-  "version": "V3.0.0",
+  "version": "V3.1.0",
   "api_version": "2.5.0",
   "sample": [
     "2007-08",
     "2026-10"
   ],
   "built": "2026-11-25",
-  "payload_hash": "909bca6c593dd76a",
+  "payload_hash": "250ef638c598d365",
   "endpoints": {
-    "monthly": "lab_data_monthly.909bca6c593dd76a.json",
+    "monthly": "lab_data_monthly.250ef638c598d365.json",
     "monthly_alias": "lab_data_monthly.json",
     "daily": "lab_data_daily.json",
     "full": "lab_data.json",

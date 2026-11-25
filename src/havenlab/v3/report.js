@@ -58,8 +58,8 @@ export function decodeSeries(payload) {
   return { assets, series };
 }
 
-function makeCtx(decoded, rules) {
-  return { assets: decoded.assets, series: decoded.series, rules, hist: {}, gprPref: null, rates: {} };
+export function makeCtx(decoded, rules) {
+  return { assets: decoded.assets, series: decoded.series, rules, hist: {}, gprPref: null, rates: {}, narrativeRules: null };
 }
 
 function assetName(ctx, assetId, lang) {
@@ -505,6 +505,216 @@ function historyRows(ctx, events, excludeEventId) {
     out.push(row);
   }
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// narrative verdict layer (rules/narratives_v3.json, docs/methods/v3.md)
+//
+// Pre-registered-style mechanical aggregation over event dates, fixed on
+// 2026-11-25 before outputs were examined. Mirror of report_v3.py.
+// ---------------------------------------------------------------------------
+
+// Secondary horizons for the n_pos7 / n_pos91 counts. Validity is always
+// decided at the primary horizon; a valid row whose 7/91-day window is not
+// complete counts as non-positive at that horizon.
+const NARR_H7 = 7;
+const NARR_H91 = 91;
+
+function narrativeEntries(eventsOrDates) {
+  const out = [];
+  for (const item of eventsOrDates) {
+    if (typeof item === "string") out.push({ event: null, date: item, day: parseDay(item) });
+    else out.push({ event: item.id, date: item.date, day: parseDay(item.date) });
+  }
+  return out;
+}
+
+// A window return is computable iff the window closed (missing/incomplete exclude).
+function windowComplete(cell) {
+  return cell.complete === true;
+}
+
+function narrativeRow(ctx, assetId, benchId, kind, h, entry) {
+  const day = entry.day;
+  const row = { event: entry.event, date: entry.date, status: null, ret: null, bench_ret: null, pos7: false, pos91: false };
+  const bench = windowCell(ctx, benchId, h, day);
+  if (!windowComplete(bench)) {
+    row.status = "incomplete";
+    return row;
+  }
+  row.bench_ret = bench.ret;
+  if (kind === "haven" && bench.ret >= 0) {
+    row.status = "not_a_test";
+    return row;
+  }
+  const cell = windowCell(ctx, assetId, h, day);
+  if (!windowComplete(cell)) {
+    row.status = "missing";
+    return row;
+  }
+  row.status = "valid";
+  row.ret = cell.ret;
+  const cell7 = windowCell(ctx, assetId, NARR_H7, day);
+  row.pos7 = windowComplete(cell7) && cell7.ret > 0;
+  const cell91 = windowCell(ctx, assetId, NARR_H91, day);
+  row.pos91 = windowComplete(cell91) && cell91.ret > 0;
+  return row;
+}
+
+// Core aggregation: rows plus integer-math verdict for one asset.
+// eventsOrDates is a list of event dicts ({id, date}) or bare YYYY-MM-DD
+// strings (pseudo-events, used by the custom tool).
+function aggregateNarrative(ctx, eventsOrDates, assetId, benchId, kind, nrules) {
+  const h = Number(nrules.horizon);
+  const minTests = Number(nrules.min_tests);
+  const rows = narrativeEntries(eventsOrDates).map((entry) => narrativeRow(ctx, assetId, benchId, kind, h, entry));
+  let nValid = 0;
+  let nPos = 0;
+  let nNotTest = 0;
+  let nMissing = 0;
+  let nPos7 = 0;
+  let nPos91 = 0;
+  const rets = [];
+  for (const row of rows) {
+    if (row.status === "valid") {
+      nValid += 1;
+      if (row.ret > 0) nPos += 1;
+      if (row.pos7) nPos7 += 1;
+      if (row.pos91) nPos91 += 1;
+      rets.push(row.ret);
+    } else if (row.status === "not_a_test") {
+      nNotTest += 1;
+    } else {
+      // "missing" and "incomplete" rows combine into n_missing
+      nMissing += 1;
+    }
+  }
+  // Verdict thresholds in integer math exactly (fixed 2026-11-25, no tuning).
+  let verdict;
+  if (nValid < minTests) verdict = "untestable";
+  else if (nPos * 3 >= 2 * nValid) verdict = "mostly_holds";
+  else if (nPos * 3 <= 1 * nValid) verdict = "mostly_fails";
+  else verdict = "mixed";
+  let median = null;
+  if (rets.length) {
+    rets.sort((a, b) => a - b);
+    const n = rets.length;
+    median = n % 2 ? rets[(n / 2) | 0] : (rets[n / 2 - 1] + rets[n / 2]) / 2;
+  }
+  const outRows = rows.map((row) => ({ event: row.event, date: row.date, status: row.status, ret: row.ret, bench_ret: row.bench_ret }));
+  return {
+    asset: assetId,
+    kind,
+    verdict,
+    n_valid: nValid,
+    n_pos: nPos,
+    n_not_test: nNotTest,
+    n_missing: nMissing,
+    n_pos7: nPos7,
+    n_pos91: nPos91,
+    median,
+    rows: outRows,
+  };
+}
+
+function narrativeSummaries(ctx, agg, nrules, assetZh, assetEn) {
+  const medianText = agg.median !== null ? fmtSigned(agg.median, 1) : "—";
+  const templates = nrules.summary_templates;
+  const mapping = {
+    n_valid: agg.n_valid,
+    n_pos: agg.n_pos,
+    median: medianText,
+    n_not_test: agg.n_not_test,
+    n_missing: agg.n_missing,
+  };
+  const summaryZh = fill(templates.zh, { ...mapping, asset: assetZh });
+  const summaryEn = fill(templates.en, { ...mapping, asset: assetEn });
+  return { summaryZh, summaryEn };
+}
+
+export function buildPresetNarratives(ctx, events, nrules) {
+  const benchId = nrules.benchmark;
+  const out = [];
+  for (const narr of nrules.narratives) {
+    const agg = aggregateNarrative(ctx, events, narr.asset, benchId, narr.kind, nrules);
+    const assetZh = narr.asset_zh || assetName(ctx, narr.asset, "zh");
+    const assetEn = narr.asset_en || assetName(ctx, narr.asset, "en");
+    const { summaryZh, summaryEn } = narrativeSummaries(ctx, agg, nrules, assetZh, assetEn);
+    out.push({
+      id: narr.id,
+      asset: narr.asset,
+      kind: narr.kind,
+      zh: narr.zh,
+      en: narr.en,
+      verdict: agg.verdict,
+      n_valid: agg.n_valid,
+      n_pos: agg.n_pos,
+      n_not_test: agg.n_not_test,
+      n_missing: agg.n_missing,
+      n_pos7: agg.n_pos7,
+      n_pos91: agg.n_pos91,
+      median: agg.median,
+      summary_zh: summaryZh,
+      summary_en: summaryEn,
+      rows: agg.rows,
+    });
+  }
+  return out;
+}
+
+// Custom-tool aggregation: bare dates as pseudo-events, haven rules.
+// Same output structure as preset narratives. Narrative text fields
+// (id/zh/en) are null — there is no pre-registered statement. Summaries are
+// only written when benchId is the narrative-layer benchmark, because the
+// fixed template names that benchmark; otherwise they are null.
+// Usage: const ctx = makeCtx(decodeSeries(payload), rules);
+//        ctx.narrativeRules = await (await fetch("narrative_rules.json")).json();
+export function buildCustomNarrative(ctx, dates, assetIds, benchId) {
+  const nrules = ctx.narrativeRules;
+  if (!nrules) throw new Error("ctx.narrativeRules is required for buildCustomNarrative");
+  const out = [];
+  for (const assetId of assetIds) {
+    const agg = aggregateNarrative(ctx, dates, assetId, benchId, "haven", nrules);
+    let summaryZh = null;
+    let summaryEn = null;
+    if (benchId === nrules.benchmark) {
+      const names = narrativeSummaries(ctx, agg, nrules, assetName(ctx, assetId, "zh"), assetName(ctx, assetId, "en"));
+      summaryZh = names.summaryZh;
+      summaryEn = names.summaryEn;
+    }
+    out.push({
+      id: null,
+      asset: assetId,
+      kind: "haven",
+      zh: null,
+      en: null,
+      verdict: agg.verdict,
+      n_valid: agg.n_valid,
+      n_pos: agg.n_pos,
+      n_not_test: agg.n_not_test,
+      n_missing: agg.n_missing,
+      n_pos7: agg.n_pos7,
+      n_pos91: agg.n_pos91,
+      median: agg.median,
+      summary_zh: summaryZh,
+      summary_en: summaryEn,
+      rows: agg.rows,
+    });
+  }
+  return out;
+}
+
+export function buildAllNarratives(payload, rules, nrules, events) {
+  const decoded = decodeSeries(payload);
+  const ctx = makeCtx(decoded, rules);
+  ctx.narrativeRules = nrules;
+  return {
+    built: payload.meta.built,
+    rules_version: nrules.version,
+    benchmark: nrules.benchmark,
+    horizon: nrules.horizon,
+    narratives: buildPresetNarratives(ctx, events, nrules),
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,26 @@
+{
+  "version": "3.1.0",
+  "benchmark": "spx",
+  "horizon": "30",
+  "min_tests": 4,
+  "labels": {
+    "mostly_holds": {"zh": "多数成立", "en": "Mostly holds"},
+    "mostly_fails": {"zh": "多数不成立", "en": "Mostly fails"},
+    "mixed": {"zh": "好坏参半", "en": "Mixed"},
+    "untestable": {"zh": "样本太少", "en": "Too few tests"}
+  },
+  "narratives": [
+    {"id":"gold_haven","asset":"gold","kind":"haven","asset_zh":"黄金","asset_en":"Gold","zh":"黄金是避险资产","en":"Gold is a safe haven"},
+    {"id":"jpy_haven","asset":"jpy","kind":"haven","asset_zh":"日元","asset_en":"The yen","zh":"日元避险","en":"The yen is a safe haven"},
+    {"id":"chf_haven","asset":"chf","kind":"haven","asset_zh":"瑞郎","asset_en":"The Swiss franc","zh":"瑞郎避险","en":"The Swiss franc is a safe haven"},
+    {"id":"btc_digital_gold","asset":"btc","kind":"haven","asset_zh":"比特币","asset_en":"Bitcoin","zh":"比特币是数字黄金","en":"Bitcoin is digital gold"},
+    {"id":"ust_haven","asset":"ust","kind":"haven","asset_zh":"美国国债","asset_en":"US Treasuries","zh":"美国国债避险","en":"US Treasuries are a safe haven"},
+    {"id":"dxy_up","asset":"dxy","kind":"haven","asset_zh":"美元指数","asset_en":"The dollar index","zh":"危机时美元走强","en":"The dollar strengthens in crises"},
+    {"id":"silver_haven","asset":"silver","kind":"haven","asset_zh":"白银","asset_en":"Silver","zh":"白银跟着黄金避险","en":"Silver is a safe haven like gold"},
+    {"id":"oil_shock","asset":"brent","kind":"transmission","asset_zh":"布伦特原油","asset_en":"Brent crude","zh":"地缘风险推高油价","en":"Geopolitical risk pushes oil up"}
+  ],
+  "summary_templates": {
+    "zh": "在 {n_valid} 次有效检验中，{asset}上涨 {n_pos} 次，一个月收益中位数 {median}%。另有 {n_not_test} 次事件标普 500 没有下跌（不构成避险考验），{n_missing} 次数据不完整。",
+    "en": "{asset} rose in {n_pos} of {n_valid} valid tests, median one-month return {median}%. In {n_not_test} further events the S&P 500 did not fall (no real test); {n_missing} had incomplete data."
+  }
+}

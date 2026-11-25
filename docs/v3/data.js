@@ -16,6 +16,8 @@ export class V3Data {
     this.manifest = null;
     this.reports = null;
     this.rules = null;
+    this.narratives = null;
+    this.narrativeRules = null;
     this.payload = null;
     this.decoded = null;
     this.eventList = [];
@@ -24,15 +26,20 @@ export class V3Data {
     this.gprMeta = null;
   }
 
-  // reports.json + rules.json — enough for latest and preset reports.
+  // reports.json + rules.json + narratives — enough for the scoreboard,
+  // the detail grid and the briefing. series.json loads lazily after.
   async loadCore() {
     this.manifest = await fetchJson(this.base + "manifest.json");
-    const [reports, rules] = await Promise.all([
+    const [reports, rules, narratives, narrativeRules] = await Promise.all([
       fetchJson(this.base + "reports.json"),
       fetchJson(this.base + "rules.json"),
+      fetchJson(this.base + "narratives.json"),
+      fetchJson(this.base + "narrative_rules.json"),
     ]);
     this.reports = reports;
     this.rules = rules;
+    this.narratives = narratives;
+    this.narrativeRules = narrativeRules;
     this.eventList = Array.isArray(reports.event_list) ? reports.event_list : [];
     this.benches = Object.keys(reports.latest || {});
     return this;

@@ -21,6 +21,15 @@ from tests.test_report_v3 import RULES, _synthetic_series
 
 ROOT = Path(__file__).resolve().parents[1]
 REAL_SERIES = ROOT / "docs" / "v3" / "series.json"
+NRULES = json.loads((ROOT / "src" / "havenlab" / "rules" / "narratives_v3.json").read_text(encoding="utf-8"))
+
+# Custom-tool parity inputs, valid inside both the synthetic panel (2006-2020)
+# and the real one. Bench "csi" exercises the null-summary path, bench "spx"
+# the filled-summary path.
+CUSTOM_SPECS = [
+    {"dates": ["2015-03-10", "2018-06-01", "2016-06-24", "2019-08-15", "2020-01-03"], "asset_ids": ["gold", "btc", "brent"], "bench_id": "spx"},
+    {"dates": ["2010-03-01", "2014-03-18", "2017-09-03"], "asset_ids": ["silver", "ust"], "bench_id": "csi"},
+]
 
 
 def _real_events() -> list[dict]:
@@ -79,13 +88,35 @@ class ReportParityTest(unittest.TestCase):
             series_path = tmp / "series.json"
             rules_path = tmp / "rules.json"
             events_path = tmp / "events.json"
+            nrules_path = tmp / "narrative_rules.json"
+            custom_path = tmp / "custom.json"
             out_path = tmp / "out.json"
             series_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
             rules_path.write_text(json.dumps(RULES, ensure_ascii=False), encoding="utf-8")
             events_path.write_text(json.dumps(events, ensure_ascii=False), encoding="utf-8")
-            expected = report_v3.build_all_reports(payload, RULES, events)
+            nrules_path.write_text(json.dumps(NRULES, ensure_ascii=False), encoding="utf-8")
+            custom_path.write_text(json.dumps(CUSTOM_SPECS, ensure_ascii=False), encoding="utf-8")
+            ctx = report_v3._Ctx(report_v3.decode_series(payload), RULES)
+            ctx.narrative_rules = NRULES
+            expected = {
+                "reports": report_v3.build_all_reports(payload, RULES, events),
+                "narratives": report_v3.build_all_narratives(payload, RULES, NRULES, events),
+                "custom": [
+                    report_v3.build_custom_narrative(ctx, spec["dates"], spec["asset_ids"], spec["bench_id"])
+                    for spec in CUSTOM_SPECS
+                ],
+            }
             subprocess.run(
-                [self.node, "tests/report_parity.mjs", str(series_path), str(rules_path), str(events_path), str(out_path)],
+                [
+                    self.node,
+                    "tests/report_parity.mjs",
+                    str(series_path),
+                    str(rules_path),
+                    str(events_path),
+                    str(nrules_path),
+                    str(custom_path),
+                    str(out_path),
+                ],
                 check=True,
                 cwd=ROOT,
             )

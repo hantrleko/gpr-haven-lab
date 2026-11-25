@@ -55,10 +55,12 @@ function esc(s) {
 }
 
 // months: output of monthlyGpr; markerIdx: index into months (-1 for none).
-export function stripesSvg(months, markerIdx, ariaLabel) {
+// opts: {h, stripeH, label} — the slim briefing variant drops the month label.
+export function stripesSvg(months, markerIdx, ariaLabel, opts = {}) {
   const W = 1000;
-  const H = 96;
-  const stripeH = 68;
+  const H = opts.h || 96;
+  const stripeH = opts.stripeH || 68;
+  const label = opts.label !== false;
   const n = months.length;
   const w = W / n;
   const parts = [
@@ -77,8 +79,12 @@ export function stripesSvg(months, markerIdx, ariaLabel) {
     const lx = Math.min(Math.max(cx, 34), W - 34);
     parts.push(
       `<rect class="stripe-marker" x="${(cx - w * 0.9).toFixed(2)}" y="-4" width="${(w * 1.8).toFixed(2)}" height="${stripeH + 8}" fill="#7A1F3D"/>`,
-      `<text x="${lx.toFixed(1)}" y="88" text-anchor="middle" font-size="11" fill="#1B2430">${esc(months[markerIdx].key)}</text>`,
     );
+    if (label) {
+      parts.push(
+        `<text x="${lx.toFixed(1)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#1B2430">${esc(months[markerIdx].key)}</text>`,
+      );
+    }
   }
   parts.push(`</svg>`);
   return parts.join("");

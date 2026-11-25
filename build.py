@@ -22,7 +22,7 @@ from havenlab.figures import export_all
 from havenlab.general import build_general
 from havenlab.latex import write_latex
 from havenlab.publish_b import write_api_v2, write_registry, write_static
-from havenlab.report_v3 import publish_reports
+from havenlab.report_v3 import publish_narratives, publish_reports
 from havenlab.ui_assemble import load_page
 from havenlab.version import API_VERSION, LAB_VERSION
 
@@ -133,9 +133,15 @@ def write_feed(lab: dict, path: Path) -> None:
         ET.SubElement(item, "pubDate").text = pub
 
     add_item(
-        f"{LAB_VERSION}：首页改为 v3 避险简报，经典实验室移到 /classic/",
+        f"{LAB_VERSION}：新增叙事检验层，八条常见说法按 2026-11-25 固定的规则逐事件统计。",
         "https://hantrleko.github.io/gpr-haven-lab/",
         f"version-{LAB_VERSION}",
+        "Tue, 25 Nov 2026 00:00:00 +0000",
+    )
+    add_item(
+        "V3.0.0：首页改为 v3 避险简报，经典实验室移到 /classic/",
+        "https://hantrleko.github.io/gpr-haven-lab/",
+        "version-V3.0.0",
         "Tue, 25 Nov 2026 00:00:00 +0000",
     )
     events = sorted(lab["events"], key=lambda event: event["date"], reverse=True)
@@ -302,6 +308,7 @@ def main() -> None:
     print(f"Page {docs / 'classic' / 'index.html'} and {docs / 'index.html'}")
     build_general(ROOT, from_derived=args.from_derived)
     publish_reports(ROOT)
+    publish_narratives(ROOT)
     publish_v3_ui(ROOT)
 
 

@@ -815,8 +815,8 @@ function applyI18n() {
   document.title = en ? "EF Lab | Geopolitical risk and safe havens" : "EF Lab | 地缘政治风险 × 避险资产";
   const foot = document.getElementById("site-foot");
   if (foot) foot.innerHTML = en
-    ? 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · For study only. Not investment advice. Past prices are not a forecast. Data are not updated automatically; the published sample ends in 2026-09. Reproduce with <code>fetch_data.py</code> and <code>build.py</code>. <a href="paper.html">Paper notes</a> · <a href="feed.xml">RSS</a>.'
-    : 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="paper.html">论文配套</a> · <a href="feed.xml">RSS</a>。';
+    ? 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · For study only. Not investment advice. Past prices are not a forecast. Data are not updated automatically; the published sample ends in 2026-09. Reproduce with <code>fetch_data.py</code> and <code>build.py</code>. <a href="../paper.html">Paper notes</a> · <a href="../feed.xml">RSS</a>.'
+    : 'Part of <a href="https://eugenefinance.tech">EF Lab · eugenefinance.tech</a> · ' + labVersion() + ' · 仅供学习与研究，不构成投资建议。历史走势不代表未来表现。数据不是自动日更，最近一次样本止于 2026-09。复现：<code>fetch_data.py</code> + <code>build.py</code> · <a href="../paper.html">论文配套</a> · <a href="../feed.xml">RSS</a>。';
   if (LAB) {
     document.getElementById("lede").textContent = en
       ? "Monthly sample " + LAB.meta.sample_start + " to " + LAB.meta.sample_end + ", " + LAB.meta.n_months + " months. Pick an event, then read the price path, the correlation change, and the site-defined haven score. Data change only when someone reruns build.py."
@@ -1052,7 +1052,7 @@ function render() {
   if (card) {
     const builtIn = LAB.events.some(item => item.id === event.id);
     card.hidden = !builtIn;
-    if (builtIn) card.href = "cards/" + event.id + ".jpg";
+    if (builtIn) card.href = "../cards/" + event.id + ".jpg";
     card.textContent = state.lang === "en" ? "Vertical card" : "竖版卡片";
   }
   writeUrl();
@@ -2054,23 +2054,24 @@ async function start() {
   const busy = document.getElementById("busy");
   busy.hidden = false;
   busy.textContent = "正在载入数据…";
-  let monthlyName = "lab_data_monthly.json";
+  const DATA = "../";
+  let monthlyName = DATA + "lab_data_monthly.json";
   let slicesName = "";
   try {
-    const man = await fetch("api/v1/manifest.json", {cache: "no-store"});
+    const man = await fetch(DATA + "api/v1/manifest.json", {cache: "no-store"});
     if (man.ok) {
       const manifest = await man.json();
-      if (manifest.endpoints && manifest.endpoints.monthly) monthlyName = manifest.endpoints.monthly;
-      if (manifest.endpoints && manifest.endpoints.slices) slicesName = manifest.endpoints.slices;
+      if (manifest.endpoints && manifest.endpoints.monthly) monthlyName = DATA + manifest.endpoints.monthly;
+      if (manifest.endpoints && manifest.endpoints.slices) slicesName = DATA + manifest.endpoints.slices;
     }
   } catch (err) {}
   try {
     const monthlyP = fetch(monthlyName, {cache: "no-store"});
     const slicesP = slicesName ? fetch(slicesName, {cache: "no-store"}) : null;
     let monthlyResp = await monthlyP;
-    if (!monthlyResp.ok && monthlyName !== "lab_data_monthly.json") monthlyResp = await fetch("lab_data_monthly.json", {cache: "no-store"});
+    if (!monthlyResp.ok && monthlyName !== DATA + "lab_data_monthly.json") monthlyResp = await fetch(DATA + "lab_data_monthly.json", {cache: "no-store"});
     if (monthlyResp.ok) LAB = await monthlyResp.json();
-    else LAB = await (await fetch("lab_data.json")).json();
+    else LAB = await (await fetch(DATA + "lab_data.json")).json();
     if (!LAB.slices && slicesP) {
       const extra = await slicesP;
       if (extra.ok) LAB.slices = await extra.json();
@@ -2082,7 +2083,7 @@ async function start() {
   }
   boot();
   if (!LAB.daily) {
-    fetch("lab_data_daily.json").then(resp => resp.ok ? resp.json() : null).then(extra => {
+    fetch(DATA + "lab_data_daily.json").then(resp => resp.ok ? resp.json() : null).then(extra => {
       if (!extra || !extra.daily) return;
       LAB.daily = extra.daily;
       if (state.spec) state.spec.events = state.spec.events.filter(event => monthHasAfter(event.month) && sessionAfter(event.date));

@@ -41,7 +41,7 @@ def main() -> int:
     assert isinstance(monthly["meta"].get("gold_lbma"), dict) and monthly["meta"]["gold_lbma"]
     assert monthly["meta"].get("gold_basis_check", {}).get("max_month_diff_pp") is not None
     assert monthly.get("slices") or (ROOT / "docs" / "slices.json").exists()
-    page = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+    page = (ROOT / "docs" / "classic" / "index.html").read_text(encoding="utf-8")
     assert "没有配上现货" not in page
     assert monthly["meta"]["schemas"]["payload"] == "2.0.0"
     assert monthly["meta"]["haven_headline"] == "haven"

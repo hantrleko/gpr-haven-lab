@@ -64,6 +64,7 @@ jobs:
           from pathlib import Path
           paths = [
               "docs/index.html",
+              "docs/classic/index.html",
               "docs/feed.xml",
               "docs/api/v1/manifest.json",
               "docs/lab_data.json",

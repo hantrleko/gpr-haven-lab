@@ -230,7 +230,7 @@ def write_static(root: Path, lab: dict, payload: dict, docs: Path) -> None:
             target = folder / event["id"] / "index.html"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(_page(event, panel, payload, lang, prev_id, next_id, digest), encoding="utf-8")
-    urls = [f"{SITE}/", f"{SITE}/en/"]
+    urls = [f"{SITE}/", f"{SITE}/classic/", f"{SITE}/v3/", f"{SITE}/en/"]
     for event in ordered:
         urls.append(f"{SITE}/e/{event['id']}/")
         urls.append(f"{SITE}/en/e/{event['id']}/")

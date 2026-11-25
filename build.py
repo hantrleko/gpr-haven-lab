@@ -133,10 +133,10 @@ def write_feed(lab: dict, path: Path) -> None:
         ET.SubElement(item, "pubDate").text = pub
 
     add_item(
-        f"{LAB_VERSION}：零模型改为 stationary bootstrap，避险强度增加并列版本，事件页可以单独引用",
+        f"{LAB_VERSION}：首页改为 v3 避险简报，经典实验室移到 /classic/",
         "https://hantrleko.github.io/gpr-haven-lab/",
         f"version-{LAB_VERSION}",
-        "Tue, 10 Nov 2026 00:00:00 +0000",
+        "Tue, 25 Nov 2026 00:00:00 +0000",
     )
     events = sorted(lab["events"], key=lambda event: event["date"], reverse=True)
     for event in events:
@@ -199,6 +199,14 @@ def publish_v3_ui(root: Path) -> None:
     if not src.is_dir() or not (dst / "series.json").exists():
         return
     shutil.copytree(src, dst, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+    # The site homepage is the v3 page itself; it lives at docs/index.html and
+    # reaches its assets through data-base="v3/" plus v3/-prefixed tags.
+    page = (src / "index.html").read_text(encoding="utf-8")
+    page = page.replace('href="styles.css"', 'href="v3/styles.css"')
+    page = page.replace('href="fonts/', 'href="v3/fonts/')
+    page = page.replace('src="main.js"', 'src="v3/main.js"')
+    page = page.replace("<html ", '<html data-base="v3/" ', 1)
+    (root / "docs" / "index.html").write_text(page, encoding="utf-8")
 
 
 def main() -> None:
@@ -244,7 +252,9 @@ def main() -> None:
     template = load_page(ROOT).replace("__VERSION__", LAB_VERSION)
     docs = ROOT / "docs"
     docs.mkdir(parents=True, exist_ok=True)
-    (docs / "index.html").write_text(template, encoding="utf-8")
+    classic = docs / "classic"
+    classic.mkdir(parents=True, exist_ok=True)
+    (classic / "index.html").write_text(template, encoding="utf-8")
     slices_name = _publish_payload(payload, docs, from_derived=args.from_derived)
     _write_api_manifest(docs, payload, slices_name)
     write_registry(ROOT)
@@ -289,7 +299,7 @@ def main() -> None:
                 json.dumps(lab["slices"], ensure_ascii=False, separators=(",", ":")),
                 encoding="utf-8",
             )
-    print(f"Page {docs / 'index.html'}")
+    print(f"Page {docs / 'classic' / 'index.html'} and {docs / 'index.html'}")
     build_general(ROOT, from_derived=args.from_derived)
     publish_reports(ROOT)
     publish_v3_ui(ROOT)

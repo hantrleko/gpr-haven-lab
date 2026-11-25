@@ -2,9 +2,11 @@
 
 在线页面：<https://hantrleko.github.io/gpr-haven-lab/>
 
-当前版本 **V2.5.0**。每日改动记在 `CHANGELOG.md`。每条内置事件有两条公开来源和查阅日期，记在 `src/havenlab/events.py`。竖版卡片和对比汇总与首屏使用同一条避险分流门槛。
+当前版本 **V3.0.0**。每日改动记在 `CHANGELOG.md`。每条内置事件有两条公开来源和查阅日期，记在 `src/havenlab/events.py`。竖版卡片和对比汇总与首屏使用同一条避险分流门槛。
 
-交互页面用来对照事件叙事。`figs/` 里的 PDF 是同一套定义导出的图。页面右上角可以切到英文。选中的事件和窗口写在网址里，例如 `https://hantrleko.github.io/gpr-haven-lab/?e=ukraine_2022&w=12&d=40`。论文配套说明见 [`docs/paper.html`](docs/paper.html)。
+首页（`/`）是 v3 避险简报：规则化报告引擎（`src/havenlab/rules/rules_v3.json`，Python/JS 双实现）+ 地缘压力色带 + 15 事件历史矩阵，中英文切换；方法见 `docs/methods/v3.md`，页面源码在 `src/havenlab/v3/`。v3 独立地址 `/v3/`。
+
+经典交互实验室在 `/classic/`。`figs/` 里的 PDF 是同一套定义导出的图。页面右上角可以切到英文。选中的事件和窗口写在网址里，例如 `https://hantrleko.github.io/gpr-haven-lab/classic/?e=ukraine_2022&w=12&d=40`。论文配套说明见 [`docs/paper.html`](docs/paper.html)。
 
 ## 打开
 
